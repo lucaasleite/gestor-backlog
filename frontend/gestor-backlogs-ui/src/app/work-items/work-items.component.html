@@ -1,0 +1,113 @@
+<div class="page">
+  <header>
+    <h2>Gestor de Backlogs — Geração de Tasks</h2>
+    <button type="button" class="link" (click)="openConfig.emit()">Configurações</button>
+  </header>
+
+  <div class="toolbar">
+    <label>
+      Sprint
+      <select [ngModel]="selectedIterationPath()" (ngModelChange)="onSprintChange($event)" [disabled]="loadingSprints()">
+        @for (sprint of sprints(); track sprint.id) {
+          <option [value]="sprint.path">{{ sprint.name }}{{ sprint.isCurrent ? ' (atual)' : '' }}</option>
+        }
+      </select>
+    </label>
+
+    @if (availableTypes().length > 0) {
+      <div class="type-filters">
+        @for (type of availableTypes(); track type) {
+          <label class="checkbox">
+            <input
+              type="checkbox"
+              [checked]="selectedTypes().has(type)"
+              (change)="toggleType(type, $any($event.target).checked)"
+            />
+            {{ type }}
+          </label>
+        }
+      </div>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+
+  @if (loadingWorkItems()) {
+    <p>Carregando work items...</p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Título</th>
+          <th>Tipo</th>
+          <th>Size</th>
+          <th>Effort</th>
+          <th>Responsável</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of eligibleItems(); track item.id) {
+          <tr [class.disabled-row]="item.alreadyHasTasks || !item.sizeRecognized">
+            <td>
+              <input
+                type="checkbox"
+                [checked]="selectedIds().has(item.id)"
+                [disabled]="item.alreadyHasTasks || !item.sizeRecognized"
+                (change)="toggleItem(item.id, $any($event.target).checked)"
+              />
+            </td>
+            <td>{{ item.title }}</td>
+            <td>{{ item.workItemType }}</td>
+            <td>{{ item.sizeLabel ?? '-' }}</td>
+            <td>{{ item.effortHours ?? '-' }}</td>
+            <td>{{ item.assignedTo ?? '-' }}</td>
+            <td>
+              @if (item.alreadyHasTasks) {
+                <span class="badge warn">Já possui tasks</span>
+              } @else if (!item.sizeRecognized) {
+                <span class="badge warn">Tamanho não reconhecido</span>
+              } @else {
+                <span class="badge ok">{{ item.plannedTaskTitles.length }} task(s) a criar</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+
+  <div class="actions">
+    <button type="button" (click)="generate()" [disabled]="generating() || selectedIds().size === 0">
+      {{ generating() ? 'Gerando...' : 'Gerar Tasks (' + selectedIds().size + ')' }}
+    </button>
+  </div>
+
+  @if (result(); as r) {
+    <div class="result">
+      @if (r.created.length > 0) {
+        <h3>Criadas</h3>
+        <ul>
+          @for (item of r.created; track item.parentId) {
+            <li>
+              <strong>{{ item.parentTitle }}</strong>:
+              {{ item.createdTasks.length }} task(s) — {{ formatCreatedTasks(item) }}
+            </li>
+          }
+        </ul>
+      }
+
+      @if (r.skipped.length > 0) {
+        <h3>Puladas</h3>
+        <ul>
+          @for (item of r.skipped; track item.parentId) {
+            <li><strong>{{ item.parentTitle }}</strong>: {{ item.reason }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</div>

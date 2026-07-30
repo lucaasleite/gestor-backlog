@@ -1,0 +1,22 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+backend/publish/
+
+# Angular build output servido pelo backend (gerado via `npm run build`)
+backend/GestorDeBacklogs.Api/wwwroot/
+
+# Node
+frontend/**/node_modules/
+frontend/**/dist/
+frontend/**/.angular/
+
+# Claude Code (config local, não faz parte do projeto)
+.claude/
+
+# Editor / OS
+.vs/
+.vscode/
+*.user
+Thumbs.db
+.DS_Store

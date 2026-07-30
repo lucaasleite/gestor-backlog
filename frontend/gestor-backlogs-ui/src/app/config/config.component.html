@@ -1,0 +1,38 @@
+<div class="config-card">
+  <h2>Configuração da conexão com Azure DevOps</h2>
+
+  <label>
+    Organização (URL)
+    <input type="text" name="organizationUrl" [(ngModel)]="model.organizationUrl" placeholder="https://dev.azure.com/Ailos" />
+  </label>
+
+  <label>
+    Projeto
+    <input type="text" name="project" [(ngModel)]="model.project" placeholder="Ailos" />
+  </label>
+
+  <label>
+    Team
+    <input type="text" name="team" [(ngModel)]="model.team" placeholder="Nome do time no Azure DevOps" />
+  </label>
+
+  <label>
+    Personal Access Token (PAT)
+    <input
+      type="password"
+      name="pat"
+      [(ngModel)]="model.personalAccessToken"
+      [placeholder]="hasStoredToken() ? 'Já configurado — deixe em branco para manter' : 'Cole seu PAT aqui'"
+    />
+  </label>
+
+  <button type="button" (click)="save()" [disabled]="status() === 'testing'">
+    {{ status() === 'testing' ? 'Testando...' : 'Salvar e testar conexão' }}
+  </button>
+
+  @if (statusMessage()) {
+    <p class="status" [class.error]="status() === 'error'" [class.success]="status() === 'success'">
+      {{ statusMessage() }}
+    </p>
+  }
+</div>
