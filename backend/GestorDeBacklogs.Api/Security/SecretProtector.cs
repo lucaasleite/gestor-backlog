@@ -1,25 +1,23 @@
-using System.Runtime.Versioning;
-using System.Security.Cryptography;
-using System.Text;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace GestorDeBacklogs.Api.Security;
 
-[SupportedOSPlatform("windows")]
-public static class SecretProtector
+public interface ISecretProtector
 {
-    private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("GestorDeBacklogs.PAT.v1");
+    string Protect(string plainText);
+    string Unprotect(string protectedText);
+}
 
-    public static string Protect(string plainText)
+public class SecretProtector : ISecretProtector
+{
+    private readonly IDataProtector _protector;
+
+    public SecretProtector(IDataProtectionProvider provider)
     {
-        var plainBytes = Encoding.UTF8.GetBytes(plainText);
-        var protectedBytes = ProtectedData.Protect(plainBytes, Entropy, DataProtectionScope.CurrentUser);
-        return Convert.ToBase64String(protectedBytes);
+        _protector = provider.CreateProtector("GestorDeBacklogs.PAT.v1");
     }
 
-    public static string Unprotect(string protectedText)
-    {
-        var protectedBytes = Convert.FromBase64String(protectedText);
-        var plainBytes = ProtectedData.Unprotect(protectedBytes, Entropy, DataProtectionScope.CurrentUser);
-        return Encoding.UTF8.GetString(plainBytes);
-    }
+    public string Protect(string plainText) => _protector.Protect(plainText);
+
+    public string Unprotect(string protectedText) => _protector.Unprotect(protectedText);
 }
