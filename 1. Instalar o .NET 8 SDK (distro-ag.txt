@@ -1,0 +1,41 @@
+1. Instalar o .NET 8 SDK (distro-agnóstico, evita depender do apt do Ubuntu que às vezes está desatualizado)
+
+wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
+chmod +x dotnet-install.sh
+./dotnet-install.sh --channel 8.0
+
+echo 'export DOTNET_ROOT=$HOME/.dotnet' >> ~/.bashrc
+echo 'export PATH=$PATH:$HOME/.dotnet' >> ~/.bashrc
+source ~/.bashrc
+
+dotnet --version   # deve mostrar 8.0.x
+2. Instalar o Node (via nvm, pra pegar uma versão recente — Angular 20 exige Node 18.19+/20+)
+
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.bashrc
+nvm install 20
+nvm use 20
+node -v
+3. Rodar o backend (num terminal)
+
+cd ~/projetos/gestor-backlog/backend/GestorDeBacklogs.Api
+dotnet run
+Ele sobe em http://localhost:5202. Importante: como as chaves de proteção do PAT ficam no seu perfil de usuário, essa instância do WSL não enxerga o PAT que você já tinha salvo no Windows — vai pedir pra configurar organização/projeto/PAT de novo na tela de configurações na primeira vez.
+
+4. Rodar o frontend (em outro terminal)
+
+cd ~/projetos/gestor-backlog/frontend/gestor-backlogs-ui
+npm install
+npm start
+Sobe em http://localhost:4200 e já usa o proxy.conf.json pra redirecionar /api pro backend na 5202.
+
+5. Acessar
+Abre o navegador do Windows (não precisa de nada especial) em http://localhost:4200 — o WSL2 encaminha localhost automaticamente pro Windows.
+
+Um ponto de atenção pro ambiente corporativo
+Se a empresa usa proxy com inspeção de TLS pra sair na internet, o HttpClient do backend (que fala com o Azure DevOps) pode falhar validação de certificado dentro do WSL, porque o certificado raiz da empresa às vezes só está instalado no Windows, não na distro Linux. Se o "Testar conexão" der erro de SSL/certificado, o ajuste é importar o certificado raiz da empresa no WSL:
+
+
+sudo cp caminho/para/certificado-empresa.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+Quer que eu já verifique se tem algum certificado corporativo instalado no seu Windows pra te ajudar a extrair e importar no WSL, ou prefere testar primeiro e ver se dá erro?
