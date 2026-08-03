@@ -1,0 +1,82 @@
+PASSO A PASSO - RODAR O GESTOR DE BACKLOGS NO WSL VIA DOCKER
+==============================================================
+
+Pre-requisito: o repositorio deve estar clonado dentro do filesystem
+nativo do WSL (ex: ~/projetos/gestor-backlog), NAO em /mnt/c/...
+
+git clone https://github.com/lucaasleite/gestor-backlog.git ~/projetos/gestor-backlog
+
+
+1. Instalar o Docker Engine na distro (sem Docker Desktop)
+------------------------------------------------------------
+cat /etc/os-release   # confirma que e Ubuntu/Debian
+
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+
+2. Deixar o WSL iniciar o Docker sozinho (via systemd)
+------------------------------------------------------------
+sudo tee /etc/wsl.conf > /dev/null <<'EOF'
+[boot]
+systemd=true
+EOF
+
+Depois, NO POWERSHELL DO WINDOWS (nao no WSL):
+wsl --shutdown
+
+Abra o terminal do WSL de novo e confirme:
+systemctl is-system-running   # deve responder "running" ou "degraded" (ok)
+sudo systemctl enable --now docker
+
+
+3. Rodar sem precisar de "sudo" toda vez
+------------------------------------------------------------
+sudo usermod -aG docker $USER
+newgrp docker        # ou feche e abra o terminal
+docker run hello-world   # se aparecer a mensagem de boas-vindas, ta tudo certo
+
+
+4. Buildar e subir a aplicacao
+------------------------------------------------------------
+cd ~/projetos/gestor-backlog
+docker compose up --build
+
+Acesse em http://localhost:8080 pelo navegador do Windows (o WSL2
+encaminha localhost automaticamente).
+
+Como e a primeira vez rodando dentro do container, vai pedir pra
+configurar organizacao/projeto/time/PAT do Azure DevOps de novo na
+tela de configuracoes. Essa configuracao fica persistida no volume
+"gestor_config" e sobrevive a "docker compose down" e a rebuilds da
+imagem (so se perde se voce rodar "docker compose down -v").
+
+
+5. Comandos do dia a dia
+------------------------------------------------------------
+docker compose up -d          # sobe em segundo plano
+docker compose logs -f         # acompanha os logs
+docker compose down            # para e remove o container (mantem o volume)
+docker compose up --build      # reconstroi a imagem depois de puxar mudancas novas (git pull)
+
+
+6. Se der problema de rede/certificado no build
+------------------------------------------------------------
+Se a empresa usa proxy com inspecao de TLS, o "docker build" pode
+falhar baixando as imagens base ou pacotes npm/nuget (erro de
+certificado ou timeout). Se isso acontecer, sera necessario:
+  - configurar proxy no daemon do Docker (/etc/systemd/system/docker.service.d/http-proxy.conf)
+  - configurar proxy no apt e no npm dentro da distro
+  - importar o certificado raiz da empresa na distro:
+      sudo cp certificado-empresa.crt /usr/local/share/ca-certificates/
+      sudo update-ca-certificates
