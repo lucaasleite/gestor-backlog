@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+backend/publish/
+backend/GestorDeBacklogs.Api/wwwroot/
+frontend/**/node_modules/
+frontend/**/dist/
+frontend/**/.angular/
+.git/
+.claude/
+.vs/
+.vscode/

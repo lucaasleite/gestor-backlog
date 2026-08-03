@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - gestor_config:/root/.config/GestorBacklogs
+    restart: unless-stopped
+
+volumes:
+  gestor_config:
