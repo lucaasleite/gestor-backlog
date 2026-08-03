@@ -40,6 +40,8 @@ export class WorkItemsComponent implements OnInit {
   selectedIds = signal<Set<number>>(new Set());
   loadingSprints = signal(false);
   loadingWorkItems = signal(false);
+  hasLoadedOnce = signal(false);
+  areaPathConfigured = signal<boolean | null>(null);
   generating = signal(false);
   errorMessage = signal('');
   result = signal<GenerateTasksResult | null>(null);
@@ -56,6 +58,11 @@ export class WorkItemsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSprints();
+
+    this.api.getConnectionSettings().subscribe({
+      next: (settings) => this.areaPathConfigured.set(!!settings.areaPath?.trim()),
+      error: () => this.areaPathConfigured.set(false),
+    });
   }
 
   loadSprints(): void {
@@ -68,7 +75,6 @@ export class WorkItemsComponent implements OnInit {
         const current = sprints.find((s) => s.isCurrent) ?? sprints[0];
         if (current) {
           this.selectedIterationPath.set(current.path);
-          this.loadWorkItems(current.path);
         }
         this.loadingSprints.set(false);
       },
@@ -82,7 +88,16 @@ export class WorkItemsComponent implements OnInit {
   onSprintChange(path: string): void {
     this.selectedIterationPath.set(path);
     this.result.set(null);
-    this.loadWorkItems(path);
+    this.workItems.set([]);
+    this.hasLoadedOnce.set(false);
+  }
+
+  loadSelectedSprint(): void {
+    if (!this.selectedIterationPath()) {
+      return;
+    }
+    this.hasLoadedOnce.set(true);
+    this.loadWorkItems(this.selectedIterationPath());
   }
 
   loadWorkItems(iterationPath: string): void {

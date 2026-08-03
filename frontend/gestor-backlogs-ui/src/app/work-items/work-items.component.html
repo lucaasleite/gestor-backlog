@@ -14,6 +14,16 @@
         </mat-select>
       </mat-form-field>
 
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="loadSelectedSprint()"
+        [disabled]="loadingSprints() || loadingWorkItems() || !selectedIterationPath()"
+      >
+        {{ loadingWorkItems() ? 'Carregando...' : 'Carregar Work Items' }}
+      </button>
+
       @if (availableTypes().length > 0) {
         <div class="d-flex gap-16 flex-wrap">
           @for (type of availableTypes(); track type) {
@@ -25,6 +35,14 @@
       }
     </mat-card-content>
   </mat-card>
+
+  @if (areaPathConfigured() === false) {
+    <div class="rounded p-12 bg-light-warning text-warning d-flex align-items-center gap-8">
+      <mat-icon>warning</mat-icon>
+      Nenhum Area Path configurado — "Carregar Work Items" vai trazer itens de toda a organização, não só do seu time.
+      Configure o Area Path na tela de Configuração para restringir.
+    </div>
+  }
 
   @if (errorMessage()) {
     <div class="rounded p-12 bg-light-error text-error d-flex align-items-center gap-8">
@@ -39,6 +57,8 @@
         <div class="d-flex justify-content-center p-24">
           <mat-spinner diameter="32"></mat-spinner>
         </div>
+      } @else if (!hasLoadedOnce()) {
+        <p class="text-center p-24 op-5">Escolha a sprint e clique em "Carregar Work Items" para buscar os itens.</p>
       } @else {
         <div class="table-responsive">
           <table mat-table [dataSource]="eligibleItems()" class="w-100">
