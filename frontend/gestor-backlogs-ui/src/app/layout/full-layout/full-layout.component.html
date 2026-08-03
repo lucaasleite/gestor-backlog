@@ -1,0 +1,15 @@
+<div class="blue_theme light-theme" dir="ltr">
+  <app-header [showToggle]="isOver" (toggleMobileNav)="sidenav.toggle()" />
+
+  <mat-sidenav-container class="mainWrapper">
+    <mat-sidenav #sidenav [mode]="isOver ? 'over' : 'side'" [opened]="!isOver" class="sidebarNav">
+      <app-sidebar />
+    </mat-sidenav>
+
+    <mat-sidenav-content class="contentWrapper">
+      <main class="pageWrapper maxWidth">
+        <router-outlet></router-outlet>
+      </main>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

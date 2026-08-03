@@ -57,6 +57,12 @@ public class AzureDevOpsClient(
         var query = "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '" + escapedProject + "' " +
                     "AND [System.IterationPath] = '" + escapedIterationPath + "' AND [System.WorkItemType] <> ''";
 
+        if (!string.IsNullOrWhiteSpace(conn.AreaPath))
+        {
+            var escapedAreaPath = conn.AreaPath.Replace("'", "''");
+            query += " AND [System.AreaPath] UNDER '" + escapedAreaPath + "'";
+        }
+
         using var content = JsonContent(new { query });
         using var response = await client.PostAsync(url, content, ct);
         await EnsureSuccessAsync(response, ct);
@@ -71,6 +77,9 @@ public class AzureDevOpsClient(
         return ids;
     }
 
+    // A API workitemsbatch do Azure DevOps rejeita requisicoes com mais de 200 ids.
+    private const int WorkItemsBatchSize = 200;
+
     public async Task<IReadOnlyList<WorkItemDto>> GetWorkItemsByIdsAsync(IReadOnlyList<int> ids, CancellationToken ct = default)
     {
         if (ids.Count == 0)
@@ -81,15 +90,18 @@ public class AzureDevOpsClient(
         var (client, conn) = GetConfiguredClient();
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitemsbatch?api-version={_settings.ApiVersion}";
 
-        using var content = JsonContent(new { ids, expand = "relations" });
-        using var response = await client.PostAsync(url, content, ct);
-        await EnsureSuccessAsync(response, ct);
-
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(ct));
         var result = new List<WorkItemDto>();
-        foreach (var item in doc.RootElement.GetProperty("value").EnumerateArray())
+        foreach (var chunk in ids.Chunk(WorkItemsBatchSize))
         {
-            result.Add(ParseWorkItem(item));
+            using var content = JsonContent(new { ids = chunk, expand = "relations" });
+            using var response = await client.PostAsync(url, content, ct);
+            await EnsureSuccessAsync(response, ct);
+
+            using var doc = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(ct));
+            foreach (var item in doc.RootElement.GetProperty("value").EnumerateArray())
+            {
+                result.Add(ParseWorkItem(item));
+            }
         }
 
         return result;

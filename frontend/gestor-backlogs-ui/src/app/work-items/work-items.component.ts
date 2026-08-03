@@ -1,17 +1,37 @@
-import { Component, EventEmitter, OnInit, Output, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatTableModule } from '@angular/material/table';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 import { ApiService } from '../services/api.service';
 import { GenerateTasksItemResult, GenerateTasksResult, Iteration, WorkItemPreview } from '../models/api-models';
 
 @Component({
   selector: 'app-work-items',
   standalone: true,
-  imports: [FormsModule],
+  imports: [
+    FormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatCheckboxModule,
+    MatTableModule,
+    MatChipsModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    MatIconModule,
+  ],
   templateUrl: './work-items.component.html',
   styleUrl: './work-items.component.css',
 })
 export class WorkItemsComponent implements OnInit {
-  @Output() openConfig = new EventEmitter<void>();
+  displayedColumns = ['select', 'title', 'workItemType', 'size', 'effort', 'assignedTo', 'status'];
 
   sprints = signal<Iteration[]>([]);
   selectedIterationPath = signal<string>('');

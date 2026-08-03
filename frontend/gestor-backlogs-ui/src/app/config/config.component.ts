@@ -1,22 +1,36 @@
-import { Component, EventEmitter, OnInit, Output, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 import { ApiService } from '../services/api.service';
 import { ConnectionSettings } from '../models/api-models';
 
 @Component({
   selector: 'app-config',
   standalone: true,
-  imports: [FormsModule],
+  imports: [
+    FormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    MatIconModule,
+  ],
   templateUrl: './config.component.html',
   styleUrl: './config.component.css',
 })
 export class ConfigComponent implements OnInit {
-  @Output() saved = new EventEmitter<void>();
-
   model: ConnectionSettings = {
     organizationUrl: 'https://dev.azure.com/Ailos',
     project: 'Ailos',
     team: '',
+    areaPath: '',
     personalAccessToken: '',
   };
 
@@ -24,7 +38,10 @@ export class ConfigComponent implements OnInit {
   status = signal<'idle' | 'testing' | 'success' | 'error'>('idle');
   statusMessage = signal('');
 
-  constructor(private readonly api: ApiService) {}
+  constructor(
+    private readonly api: ApiService,
+    private readonly router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.api.getConnectionSettings().subscribe({
@@ -32,6 +49,7 @@ export class ConfigComponent implements OnInit {
         this.model.organizationUrl = settings.organizationUrl;
         this.model.project = settings.project;
         this.model.team = settings.team;
+        this.model.areaPath = settings.areaPath ?? '';
         this.hasStoredToken.set(settings.hasToken);
       },
       error: () => {
@@ -52,7 +70,7 @@ export class ConfigComponent implements OnInit {
               this.status.set('success');
               this.statusMessage.set('Conexão validada com sucesso.');
               this.model.personalAccessToken = '';
-              this.saved.emit();
+              this.router.navigate(['/work-items']);
             } else {
               this.status.set('error');
               this.statusMessage.set(result.message ?? 'Não foi possível conectar.');

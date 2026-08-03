@@ -1,113 +1,146 @@
-<div class="page">
-  <header>
-    <h2>Gestor de Backlogs — Geração de Tasks</h2>
-    <button type="button" class="link" (click)="openConfig.emit()">Configurações</button>
-  </header>
+<div class="d-flex flex-col gap-16">
+  <mat-card appearance="outlined">
+    <mat-card-content class="d-flex align-items-center gap-16 flex-wrap">
+      <mat-form-field appearance="outline" class="sprint-select">
+        <mat-label>Sprint</mat-label>
+        <mat-select
+          [ngModel]="selectedIterationPath()"
+          (ngModelChange)="onSprintChange($event)"
+          [disabled]="loadingSprints()"
+        >
+          @for (sprint of sprints(); track sprint.id) {
+            <mat-option [value]="sprint.path">{{ sprint.name }}{{ sprint.isCurrent ? ' (atual)' : '' }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
 
-  <div class="toolbar">
-    <label>
-      Sprint
-      <select [ngModel]="selectedIterationPath()" (ngModelChange)="onSprintChange($event)" [disabled]="loadingSprints()">
-        @for (sprint of sprints(); track sprint.id) {
-          <option [value]="sprint.path">{{ sprint.name }}{{ sprint.isCurrent ? ' (atual)' : '' }}</option>
-        }
-      </select>
-    </label>
-
-    @if (availableTypes().length > 0) {
-      <div class="type-filters">
-        @for (type of availableTypes(); track type) {
-          <label class="checkbox">
-            <input
-              type="checkbox"
-              [checked]="selectedTypes().has(type)"
-              (change)="toggleType(type, $any($event.target).checked)"
-            />
-            {{ type }}
-          </label>
-        }
-      </div>
-    }
-  </div>
+      @if (availableTypes().length > 0) {
+        <div class="d-flex gap-16 flex-wrap">
+          @for (type of availableTypes(); track type) {
+            <mat-checkbox [checked]="selectedTypes().has(type)" (change)="toggleType(type, $event.checked)">
+              {{ type }}
+            </mat-checkbox>
+          }
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
 
   @if (errorMessage()) {
-    <p class="error">{{ errorMessage() }}</p>
+    <div class="rounded p-12 bg-light-error text-error d-flex align-items-center gap-8">
+      <mat-icon>warning</mat-icon>
+      {{ errorMessage() }}
+    </div>
   }
 
-  @if (loadingWorkItems()) {
-    <p>Carregando work items...</p>
-  } @else {
-    <table>
-      <thead>
-        <tr>
-          <th></th>
-          <th>Título</th>
-          <th>Tipo</th>
-          <th>Size</th>
-          <th>Effort</th>
-          <th>Responsável</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (item of eligibleItems(); track item.id) {
-          <tr [class.disabled-row]="item.alreadyHasTasks || !item.sizeRecognized">
-            <td>
-              <input
-                type="checkbox"
-                [checked]="selectedIds().has(item.id)"
-                [disabled]="item.alreadyHasTasks || !item.sizeRecognized"
-                (change)="toggleItem(item.id, $any($event.target).checked)"
-              />
-            </td>
-            <td>{{ item.title }}</td>
-            <td>{{ item.workItemType }}</td>
-            <td>{{ item.sizeLabel ?? '-' }}</td>
-            <td>{{ item.effortHours ?? '-' }}</td>
-            <td>{{ item.assignedTo ?? '-' }}</td>
-            <td>
-              @if (item.alreadyHasTasks) {
-                <span class="badge warn">Já possui tasks</span>
-              } @else if (!item.sizeRecognized) {
-                <span class="badge warn">Tamanho não reconhecido</span>
-              } @else {
-                <span class="badge ok">{{ item.plannedTaskTitles.length }} task(s) a criar</span>
-              }
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  }
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      @if (loadingWorkItems()) {
+        <div class="d-flex justify-content-center p-24">
+          <mat-spinner diameter="32"></mat-spinner>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table mat-table [dataSource]="eligibleItems()" class="w-100">
+            <ng-container matColumnDef="select">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let item">
+                <mat-checkbox
+                  [checked]="selectedIds().has(item.id)"
+                  [disabled]="item.alreadyHasTasks || !item.sizeRecognized"
+                  (change)="toggleItem(item.id, $event.checked)"
+                ></mat-checkbox>
+              </td>
+            </ng-container>
 
-  <div class="actions">
-    <button type="button" (click)="generate()" [disabled]="generating() || selectedIds().size === 0">
-      {{ generating() ? 'Gerando...' : 'Gerar Tasks (' + selectedIds().size + ')' }}
-    </button>
-  </div>
+            <ng-container matColumnDef="title">
+              <th mat-header-cell *matHeaderCellDef>Título</th>
+              <td mat-cell *matCellDef="let item">{{ item.title }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="workItemType">
+              <th mat-header-cell *matHeaderCellDef>Tipo</th>
+              <td mat-cell *matCellDef="let item">{{ item.workItemType }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="size">
+              <th mat-header-cell *matHeaderCellDef>Size</th>
+              <td mat-cell *matCellDef="let item">{{ item.sizeLabel ?? '-' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="effort">
+              <th mat-header-cell *matHeaderCellDef>Effort</th>
+              <td mat-cell *matCellDef="let item">{{ item.effortHours ?? '-' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="assignedTo">
+              <th mat-header-cell *matHeaderCellDef>Responsável</th>
+              <td mat-cell *matCellDef="let item">{{ item.assignedTo ?? '-' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let item">
+                <mat-chip-set>
+                  @if (item.alreadyHasTasks) {
+                    <mat-chip class="bg-light-warning text-warning">Já possui tasks</mat-chip>
+                  } @else if (!item.sizeRecognized) {
+                    <mat-chip class="bg-light-warning text-warning">Tamanho não reconhecido</mat-chip>
+                  } @else {
+                    <mat-chip class="bg-light-success text-success">{{ item.plannedTaskTitles.length }} task(s) a criar</mat-chip>
+                  }
+                </mat-chip-set>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: displayedColumns"
+              [class.op-5]="row.alreadyHasTasks || !row.sizeRecognized"
+            ></tr>
+          </table>
+        </div>
+      }
+    </mat-card-content>
+
+    <mat-card-actions class="p-x-16 p-b-16">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="generate()"
+        [disabled]="generating() || selectedIds().size === 0"
+      >
+        {{ generating() ? 'Gerando...' : 'Gerar Tasks (' + selectedIds().size + ')' }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
 
   @if (result(); as r) {
-    <div class="result">
-      @if (r.created.length > 0) {
-        <h3>Criadas</h3>
-        <ul>
-          @for (item of r.created; track item.parentId) {
-            <li>
-              <strong>{{ item.parentTitle }}</strong>:
-              {{ item.createdTasks.length }} task(s) — {{ formatCreatedTasks(item) }}
-            </li>
-          }
-        </ul>
-      }
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        @if (r.created.length > 0) {
+          <h3>Criadas</h3>
+          <ul>
+            @for (item of r.created; track item.parentId) {
+              <li>
+                <strong>{{ item.parentTitle }}</strong>:
+                {{ item.createdTasks.length }} task(s) — {{ formatCreatedTasks(item) }}
+              </li>
+            }
+          </ul>
+        }
 
-      @if (r.skipped.length > 0) {
-        <h3>Puladas</h3>
-        <ul>
-          @for (item of r.skipped; track item.parentId) {
-            <li><strong>{{ item.parentTitle }}</strong>: {{ item.reason }}</li>
-          }
-        </ul>
-      }
-    </div>
+        @if (r.skipped.length > 0) {
+          <h3>Puladas</h3>
+          <ul>
+            @for (item of r.skipped; track item.parentId) {
+              <li><strong>{{ item.parentTitle }}</strong>: {{ item.reason }}</li>
+            }
+          </ul>
+        }
+      </mat-card-content>
+    </mat-card>
   }
 </div>

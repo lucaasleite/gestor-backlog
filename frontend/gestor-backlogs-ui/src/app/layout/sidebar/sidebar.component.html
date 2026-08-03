@@ -1,0 +1,7 @@
+<div class="flex-layout">
+  <mat-nav-list class="sidebar-list">
+    @for (item of navItems; track item.route) {
+      <app-nav-item [item]="item" />
+    }
+  </mat-nav-list>
+</div>

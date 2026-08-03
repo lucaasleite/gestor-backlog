@@ -1,38 +1,70 @@
-<div class="config-card">
-  <h2>Configuração da conexão com Azure DevOps</h2>
+<div class="config-page">
+  <mat-card class="config-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Configuração da conexão com Azure DevOps</mat-card-title>
+    </mat-card-header>
 
-  <label>
-    Organização (URL)
-    <input type="text" name="organizationUrl" [(ngModel)]="model.organizationUrl" placeholder="https://dev.azure.com/Ailos" />
-  </label>
+    <mat-card-content class="d-flex flex-col gap-16 m-t-16">
+      <mat-form-field appearance="outline">
+        <mat-label>Organização (URL)</mat-label>
+        <input matInput name="organizationUrl" [(ngModel)]="model.organizationUrl" placeholder="https://dev.azure.com/Ailos" />
+      </mat-form-field>
 
-  <label>
-    Projeto
-    <input type="text" name="project" [(ngModel)]="model.project" placeholder="Ailos" />
-  </label>
+      <mat-form-field appearance="outline">
+        <mat-label>Projeto</mat-label>
+        <input matInput name="project" [(ngModel)]="model.project" placeholder="Ailos" />
+      </mat-form-field>
 
-  <label>
-    Team
-    <input type="text" name="team" [(ngModel)]="model.team" placeholder="Nome do time no Azure DevOps" />
-  </label>
+      <mat-form-field appearance="outline">
+        <mat-label>Team</mat-label>
+        <input matInput name="team" [(ngModel)]="model.team" placeholder="Nome do time no Azure DevOps" />
+      </mat-form-field>
 
-  <label>
-    Personal Access Token (PAT)
-    <input
-      type="password"
-      name="pat"
-      [(ngModel)]="model.personalAccessToken"
-      [placeholder]="hasStoredToken() ? 'Já configurado — deixe em branco para manter' : 'Cole seu PAT aqui'"
-    />
-  </label>
+      <mat-form-field appearance="outline">
+        <mat-label>Area Path (opcional)</mat-label>
+        <input
+          matInput
+          name="areaPath"
+          [(ngModel)]="model.areaPath"
+          placeholder="Ailos\Nome da Área"
+        />
+        <mat-hint>Restringe aos work items desse time quando iterações são compartilhadas entre times.</mat-hint>
+      </mat-form-field>
 
-  <button type="button" (click)="save()" [disabled]="status() === 'testing'">
-    {{ status() === 'testing' ? 'Testando...' : 'Salvar e testar conexão' }}
-  </button>
+      <mat-form-field appearance="outline">
+        <mat-label>Personal Access Token (PAT)</mat-label>
+        <input
+          matInput
+          type="password"
+          name="pat"
+          [(ngModel)]="model.personalAccessToken"
+          [placeholder]="hasStoredToken() ? 'Já configurado — deixe em branco para manter' : 'Cole seu PAT aqui'"
+        />
+      </mat-form-field>
 
-  @if (statusMessage()) {
-    <p class="status" [class.error]="status() === 'error'" [class.success]="status() === 'success'">
-      {{ statusMessage() }}
-    </p>
-  }
+      @if (statusMessage()) {
+        <div
+          class="rounded p-12 d-flex align-items-center gap-8"
+          [class.bg-light-success]="status() === 'success'"
+          [class.text-success]="status() === 'success'"
+          [class.bg-light-error]="status() === 'error'"
+          [class.text-error]="status() === 'error'"
+        >
+          <mat-icon>{{ status() === 'success' ? 'check_circle' : 'warning' }}</mat-icon>
+          {{ statusMessage() }}
+        </div>
+      }
+    </mat-card-content>
+
+    <mat-card-actions class="p-x-16 p-b-16">
+      <button mat-raised-button color="primary" type="button" (click)="save()" [disabled]="status() === 'testing'">
+        @if (status() === 'testing') {
+          <mat-spinner diameter="18" class="d-inline-block m-r-8"></mat-spinner>
+          Testando...
+        } @else {
+          Salvar e testar conexão
+        }
+      </button>
+    </mat-card-actions>
+  </mat-card>
 </div>

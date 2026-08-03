@@ -1,11 +1,1 @@
-@switch (view()) {
-  @case ('loading') {
-    <p class="loading">Carregando...</p>
-  }
-  @case ('config') {
-    <app-config (saved)="onConfigSaved()" />
-  }
-  @case ('work-items') {
-    <app-work-items (openConfig)="onOpenConfig()" />
-  }
-}
+<router-outlet></router-outlet>

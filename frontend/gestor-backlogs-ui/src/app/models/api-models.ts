@@ -2,6 +2,7 @@ export interface ConnectionSettings {
   organizationUrl: string;
   project: string;
   team: string;
+  areaPath?: string;
   personalAccessToken?: string;
 }
 
@@ -9,6 +10,7 @@ export interface ConnectionSettingsResponse {
   organizationUrl: string;
   project: string;
   team: string;
+  areaPath?: string;
   hasToken: boolean;
 }
 
