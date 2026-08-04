@@ -1,9 +1,4 @@
-<a
-  mat-list-item
-  [routerLink]="item.route"
-  routerLinkActive="activeMenu"
-  class="menu-list-item"
->
-  <mat-icon class="routeIcon" matListItemIcon>{{ item.iconName }}</mat-icon>
-  <span class="hide-menu">{{ item.displayName }}</span>
+<a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
+  <span class="dot"></span>
+  <span>{{ item.displayName }}</span>
 </a>

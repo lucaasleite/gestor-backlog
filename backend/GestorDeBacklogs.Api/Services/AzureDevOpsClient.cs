@@ -129,6 +129,7 @@ public class AzureDevOpsClient(
         {
             new { op = "add", path = "/fields/System.Title", value = title },
             new { op = "add", path = "/fields/Microsoft.VSTS.Scheduling.OriginalEstimate", value = hours },
+            new { op = "add", path = "/fields/Microsoft.VSTS.Scheduling.RemainingWork", value = hours },
             new { op = "add", path = "/fields/System.IterationPath", value = parent.IterationPath },
             new { op = "add", path = "/fields/System.AreaPath", value = parent.AreaPath },
         };

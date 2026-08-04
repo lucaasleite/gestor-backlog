@@ -1,15 +1,20 @@
-<div class="blue_theme light-theme" dir="ltr">
-  <app-header [showToggle]="isOver" (toggleMobileNav)="sidenav.toggle()" />
+<div class="shell">
+  <div class="topbar">
+    <span>Gestor de Backlogs</span>
+    <button class="menu-toggle" type="button" (click)="toggleSidebar()" aria-label="Abrir menu">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+  </div>
 
-  <mat-sidenav-container class="mainWrapper">
-    <mat-sidenav #sidenav [mode]="isOver ? 'over' : 'side'" [opened]="!isOver" class="sidebarNav">
-      <app-sidebar />
-    </mat-sidenav>
+  <nav class="sidebar" [class.open]="sidebarOpen()">
+    <app-sidebar (navigated)="closeSidebar()" />
+  </nav>
 
-    <mat-sidenav-content class="contentWrapper">
-      <main class="pageWrapper maxWidth">
-        <router-outlet></router-outlet>
-      </main>
-    </mat-sidenav-content>
-  </mat-sidenav-container>
+  <div class="backdrop" [class.show]="sidebarOpen()" (click)="closeSidebar()"></div>
+
+  <main class="content">
+    <router-outlet></router-outlet>
+  </main>
 </div>

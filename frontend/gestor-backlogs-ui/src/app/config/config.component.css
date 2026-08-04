@@ -1,9 +1,0 @@
-.config-page {
-  display: flex;
-  justify-content: center;
-}
-
-.config-card {
-  width: 100%;
-  max-width: 560px;
-}

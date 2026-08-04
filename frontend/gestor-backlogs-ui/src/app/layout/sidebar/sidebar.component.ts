@@ -1,14 +1,15 @@
-import { Component } from '@angular/core';
-import { MatListModule } from '@angular/material/list';
+import { Component, EventEmitter, Output } from '@angular/core';
 import { AppNavItemComponent } from './nav-item/nav-item.component';
 import { navItems } from './sidebar-data';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [MatListModule, AppNavItemComponent],
+  imports: [AppNavItemComponent],
   templateUrl: './sidebar.component.html',
+  styles: ':host { display: contents; }',
 })
 export class SidebarComponent {
   navItems = navItems;
+  @Output() navigated = new EventEmitter<void>();
 }

@@ -32,8 +32,7 @@
               }
             ],
             "styles": [
-              "src/styles.css",
-              "src/assets/scss/style.scss"
+              "src/styles.css"
             ]
           },
           "configurations": {
@@ -41,8 +40,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "2MB",
-                  "maximumError": "4MB"
+                  "maximumWarning": "600kB",
+                  "maximumError": "1MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -90,8 +89,7 @@
               }
             ],
             "styles": [
-              "src/styles.css",
-              "src/assets/scss/style.scss"
+              "src/styles.css"
             ]
           }
         }

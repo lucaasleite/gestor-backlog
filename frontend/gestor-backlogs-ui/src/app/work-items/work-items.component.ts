@@ -1,38 +1,16 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
 import { ApiService } from '../services/api.service';
 import { GenerateTasksItemResult, GenerateTasksResult, Iteration, WorkItemPreview } from '../models/api-models';
 
 @Component({
   selector: 'app-work-items',
   standalone: true,
-  imports: [
-    FormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    MatTableModule,
-    MatChipsModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
-  ],
+  imports: [FormsModule],
   templateUrl: './work-items.component.html',
-  styleUrl: './work-items.component.css',
+  styles: ':host { display: contents; }',
 })
 export class WorkItemsComponent implements OnInit {
-  displayedColumns = ['select', 'title', 'workItemType', 'size', 'effort', 'assignedTo', 'status'];
-
   sprints = signal<Iteration[]>([]);
   selectedIterationPath = signal<string>('');
   workItems = signal<WorkItemPreview[]>([]);
