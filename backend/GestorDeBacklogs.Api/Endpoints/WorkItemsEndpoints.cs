@@ -20,6 +20,12 @@ public static class WorkItemsEndpoints
 
         group.MapGet("/workitems/{id:int}/fields", async (int id, IAzureDevOpsClient client) =>
             Results.Ok(await client.GetWorkItemRawFieldsAsync(id)));
+
+        group.MapGet("/parent/{parentId:int}/user-stories", async (int parentId, IWorkItemService service) =>
+            Results.Ok(await service.GetChildUserStoriesAsync(parentId)));
+
+        group.MapPost("/parent/generate-tasks", async (GenerateTasksFromParentRequest request, IWorkItemService service) =>
+            Results.Ok(await service.GenerateTasksFromParentAsync(request)));
     }
 
     private static RouteGroupBuilder WithErrorHandling(this RouteGroupBuilder group)

@@ -22,3 +22,5 @@ public record WorkItemPreviewDto(
     bool AlreadyHasTasks,
     bool SizeRecognized,
     IReadOnlyList<string> PlannedTaskTitles);
+
+public record ParentUserStoryDto(int Id, string Title, string? AssignedTo);

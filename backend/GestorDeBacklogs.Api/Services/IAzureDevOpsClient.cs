@@ -13,7 +13,9 @@ public interface IAzureDevOpsClient
 
     Task<IReadOnlyList<WorkItemDto>> GetWorkItemsByIdsAsync(IReadOnlyList<int> ids, CancellationToken ct = default);
 
+    Task<IReadOnlyList<int>> GetChildWorkItemIdsAsync(int parentId, CancellationToken ct = default);
+
     Task<Dictionary<string, JsonElement>> GetWorkItemRawFieldsAsync(int id, CancellationToken ct = default);
 
-    Task<int> CreateTaskAsync(WorkItemDto parent, string title, int hours, CancellationToken ct = default);
+    Task<int> CreateTaskAsync(WorkItemDto parent, string title, int hours, string iterationPath, CancellationToken ct = default);
 }

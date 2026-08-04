@@ -1,0 +1,114 @@
+<div>
+  <h1>Gerar tasks a partir de um Parent</h1>
+  <p class="text-dim">Carrega as User Stories filhas de um pacote de trabalho e cria uma task por US, em cada sprint marcada.</p>
+</div>
+
+<section class="card">
+  <h2>1. Parent</h2>
+  <div class="actions-bar">
+    <div class="field" style="min-width: 200px;">
+      <label for="parentId">ID do work item</label>
+      <input type="text" id="parentId" [(ngModel)]="parentId" placeholder="Ex: 48213" />
+    </div>
+    <button type="button" (click)="loadUserStories()" [disabled]="loadingParent()">
+      {{ loadingParent() ? 'Carregando...' : 'Carregar User Stories' }}
+    </button>
+  </div>
+  @if (parentError()) {
+    <div class="banner error" style="margin-top: 12px;">{{ parentError() }}</div>
+  }
+</section>
+
+@if (userStories().length > 0) {
+  <section class="card">
+    <h2>2. User Stories ({{ userStories().length }})</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Título</th>
+            <th>Responsável</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (us of userStories(); track us.id) {
+            <tr>
+              <td>
+                <input
+                  type="checkbox"
+                  [checked]="selectedUsIds().has(us.id)"
+                  (change)="toggleUs(us.id, $any($event.target).checked)"
+                />
+              </td>
+              <td>{{ us.title }} <span class="text-dim">#{{ us.id }}</span></td>
+              <td>{{ us.assignedTo ?? '-' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. Sprints</h2>
+    <div class="actions-bar">
+      @for (sprint of sprints(); track sprint.id) {
+        <label style="display: flex; align-items: center; gap: 6px; font-size: 13.5px;">
+          <input
+            type="checkbox"
+            [checked]="selectedSprintPaths().has(sprint.path)"
+            (change)="toggleSprint(sprint.path, $any($event.target).checked)"
+          />
+          {{ sprint.name }}{{ sprint.isCurrent ? ' (atual)' : '' }}
+        </label>
+      }
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>4. Prévia das tasks</h2>
+    @if (previewItems().length === 0) {
+      <p class="text-dim">Marque ao menos uma US e uma sprint pra ver a prévia.</p>
+    } @else {
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        @for (item of previewItems(); track item.title) {
+          <div
+            style="display: flex; justify-content: space-between; gap: 12px; background: var(--surface-2); border-radius: 8px; padding: 8px 12px; font-size: 13.5px;"
+          >
+            <span>{{ item.title }}</span>
+            <span class="text-dim">{{ item.assignedTo ?? '-' }}</span>
+          </div>
+        }
+      </div>
+    }
+    <p class="text-dim" style="margin-top: 12px;">
+      Título: {{ '{' }}US{{ '}' }} - {{ '{' }}Release{{ '}' }} - {{ '{' }}Sprint{{ '}' }} (extraídos do caminho da
+      sprint). Original Estimate e Remaining Work ficam em 0h. Assigned To da task = Assigned To da US.
+    </p>
+  </section>
+
+  @if (errorMessage()) {
+    <div class="banner error">{{ errorMessage() }}</div>
+  }
+
+  <section class="card actions-bar" style="justify-content: space-between;">
+    <span class="text-dim">{{ totalCount() }} task(s) serão criadas</span>
+    <button type="button" (click)="generate()" [disabled]="generating() || totalCount() === 0">
+      {{ generating() ? 'Gerando...' : 'Gerar Tasks' }}
+    </button>
+  </section>
+}
+
+@if (result(); as r) {
+  <section class="card">
+    @if (r.created.length > 0) {
+      <h2>Criadas</h2>
+      <ul>
+        @for (item of r.created; track item.parentId) {
+          <li><strong>{{ item.parentTitle }}</strong>: {{ item.createdTasks.length }} task(s)</li>
+        }
+      </ul>
+    }
+  </section>
+}

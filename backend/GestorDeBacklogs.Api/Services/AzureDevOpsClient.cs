@@ -107,6 +107,36 @@ public class AzureDevOpsClient(
         return result;
     }
 
+    public async Task<IReadOnlyList<int>> GetChildWorkItemIdsAsync(int parentId, CancellationToken ct = default)
+    {
+        var (client, conn) = GetConfiguredClient();
+        var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/{parentId}?$expand=relations&api-version={_settings.ApiVersion}";
+        using var response = await client.GetAsync(url, ct);
+        await EnsureSuccessAsync(response, ct);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(ct));
+        var ids = new List<int>();
+
+        if (doc.RootElement.TryGetProperty("relations", out var relations) && relations.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var relation in relations.EnumerateArray())
+            {
+                var isChild = relation.TryGetProperty("rel", out var rel) && rel.GetString() == "System.LinkTypes.Hierarchy-Forward";
+                if (isChild && relation.TryGetProperty("url", out var relUrl))
+                {
+                    var urlStr = relUrl.GetString()!;
+                    var idStr = urlStr[(urlStr.LastIndexOf('/') + 1)..];
+                    if (int.TryParse(idStr, out var childId))
+                    {
+                        ids.Add(childId);
+                    }
+                }
+            }
+        }
+
+        return ids;
+    }
+
     public async Task<Dictionary<string, JsonElement>> GetWorkItemRawFieldsAsync(int id, CancellationToken ct = default)
     {
         var (client, conn) = GetConfiguredClient();
@@ -120,7 +150,7 @@ public class AzureDevOpsClient(
             .ToDictionary(p => p.Name, p => p.Value.Clone());
     }
 
-    public async Task<int> CreateTaskAsync(WorkItemDto parent, string title, int hours, CancellationToken ct = default)
+    public async Task<int> CreateTaskAsync(WorkItemDto parent, string title, int hours, string iterationPath, CancellationToken ct = default)
     {
         var (client, conn) = GetConfiguredClient();
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/$Task?api-version={_settings.ApiVersion}";
@@ -130,7 +160,7 @@ public class AzureDevOpsClient(
             new { op = "add", path = "/fields/System.Title", value = title },
             new { op = "add", path = "/fields/Microsoft.VSTS.Scheduling.OriginalEstimate", value = hours },
             new { op = "add", path = "/fields/Microsoft.VSTS.Scheduling.RemainingWork", value = hours },
-            new { op = "add", path = "/fields/System.IterationPath", value = parent.IterationPath },
+            new { op = "add", path = "/fields/System.IterationPath", value = iterationPath },
             new { op = "add", path = "/fields/System.AreaPath", value = parent.AreaPath },
         };
 

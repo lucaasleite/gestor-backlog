@@ -38,7 +38,7 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
             var createdTasks = new List<CreatedTaskInfo>();
             foreach (var task in tasksToCreate)
             {
-                var newId = await client.CreateTaskAsync(workItem, task.Title, task.Hours, ct);
+                var newId = await client.CreateTaskAsync(workItem, task.Title, task.Hours, workItem.IterationPath, ct);
                 createdTasks.Add(new CreatedTaskInfo(newId, task.Title, task.Hours));
             }
 
@@ -46,6 +46,52 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
         }
 
         return new GenerateTasksResult(created, skipped);
+    }
+
+    public async Task<IReadOnlyList<ParentUserStoryDto>> GetChildUserStoriesAsync(int parentId, CancellationToken ct = default)
+    {
+        var childIds = await client.GetChildWorkItemIdsAsync(parentId, ct);
+        var children = await client.GetWorkItemsByIdsAsync(childIds, ct);
+
+        return children
+            .Where(wi => wi.WorkItemType == "User Story")
+            .Select(wi => new ParentUserStoryDto(wi.Id, wi.Title, wi.AssignedTo))
+            .ToList();
+    }
+
+    public async Task<GenerateTasksResult> GenerateTasksFromParentAsync(GenerateTasksFromParentRequest request, CancellationToken ct = default)
+    {
+        // Reconsulta as USs (em vez de confiar no que o cliente enviou) pra garantir AreaPath/AssignedTo atuais.
+        var userStories = await client.GetWorkItemsByIdsAsync(request.UserStoryIds, ct);
+
+        var created = new List<GenerateTasksItemResult>();
+
+        foreach (var userStory in userStories)
+        {
+            var createdTasks = new List<CreatedTaskInfo>();
+
+            foreach (var iterationPath in request.IterationPaths)
+            {
+                var title = BuildParentTaskTitle(userStory.Title, iterationPath);
+                var newId = await client.CreateTaskAsync(userStory, title, 0, iterationPath, ct);
+                createdTasks.Add(new CreatedTaskInfo(newId, title, 0));
+            }
+
+            created.Add(new GenerateTasksItemResult(userStory.Id, userStory.Title, createdTasks));
+        }
+
+        return new GenerateTasksResult(created, []);
+    }
+
+    private static string BuildParentTaskTitle(string userStoryTitle, string iterationPath)
+    {
+        var segments = iterationPath.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        var sprint = segments.Length > 0 ? segments[^1] : iterationPath;
+        var release = segments.Length > 1 ? segments[^2] : null;
+
+        return release is null
+            ? $"{userStoryTitle} - {sprint}"
+            : $"{userStoryTitle} - {release} - {sprint}";
     }
 
     private static WorkItemPreviewDto BuildPreview(WorkItemDto workItem)

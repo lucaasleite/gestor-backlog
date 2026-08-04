@@ -4,9 +4,11 @@ import { Observable } from 'rxjs';
 import {
   ConnectionSettings,
   ConnectionSettingsResponse,
+  GenerateTasksFromParentRequest,
   GenerateTasksRequest,
   GenerateTasksResult,
   Iteration,
+  ParentUserStory,
   WorkItemPreview,
 } from '../models/api-models';
 
@@ -40,5 +42,13 @@ export class ApiService {
 
   generateTasks(request: GenerateTasksRequest): Observable<GenerateTasksResult> {
     return this.http.post<GenerateTasksResult>(`${this.baseUrl}/workitems/generate-tasks`, request);
+  }
+
+  getParentUserStories(parentId: number): Observable<ParentUserStory[]> {
+    return this.http.get<ParentUserStory[]>(`${this.baseUrl}/parent/${parentId}/user-stories`);
+  }
+
+  generateTasksFromParent(request: GenerateTasksFromParentRequest): Observable<GenerateTasksResult> {
+    return this.http.post<GenerateTasksResult>(`${this.baseUrl}/parent/generate-tasks`, request);
   }
 }

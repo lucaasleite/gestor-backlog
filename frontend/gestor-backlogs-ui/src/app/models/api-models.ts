@@ -60,3 +60,14 @@ export interface GenerateTasksResult {
   created: GenerateTasksItemResult[];
   skipped: SkippedItemResult[];
 }
+
+export interface ParentUserStory {
+  id: number;
+  title: string;
+  assignedTo: string | null;
+}
+
+export interface GenerateTasksFromParentRequest {
+  userStoryIds: number[];
+  iterationPaths: string[];
+}
