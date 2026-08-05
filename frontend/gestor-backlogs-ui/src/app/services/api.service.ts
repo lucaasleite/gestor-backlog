@@ -5,11 +5,14 @@ import {
   ConnectionSettings,
   ConnectionSettingsResponse,
   GenerateTasksFromParentRequest,
+  GenerateTasksItemResult,
   GenerateTasksRequest,
   GenerateTasksResult,
   Iteration,
   ParentUserStory,
+  RegenerateTasksResult,
   WorkItemPreview,
+  WorkItemTask,
 } from '../models/api-models';
 
 @Injectable({ providedIn: 'root' })
@@ -50,5 +53,21 @@ export class ApiService {
 
   generateTasksFromParent(request: GenerateTasksFromParentRequest): Observable<GenerateTasksResult> {
     return this.http.post<GenerateTasksResult>(`${this.baseUrl}/parent/generate-tasks`, request);
+  }
+
+  getChildTasks(parentId: number): Observable<WorkItemTask[]> {
+    return this.http.get<WorkItemTask[]>(`${this.baseUrl}/workitems/${parentId}/tasks`);
+  }
+
+  regenerateTasks(workItemId: number): Observable<RegenerateTasksResult> {
+    return this.http.post<RegenerateTasksResult>(`${this.baseUrl}/workitems/${workItemId}/regenerate-tasks`, {});
+  }
+
+  getWorkItemPreview(id: number): Observable<WorkItemPreview> {
+    return this.http.get<WorkItemPreview>(`${this.baseUrl}/workitems/${id}/preview`);
+  }
+
+  generateTaskForItem(id: number): Observable<GenerateTasksItemResult> {
+    return this.http.post<GenerateTasksItemResult>(`${this.baseUrl}/workitems/${id}/generate-tasks`, {});
   }
 }

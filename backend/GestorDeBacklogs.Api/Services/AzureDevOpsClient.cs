@@ -33,15 +33,22 @@ public class AzureDevOpsClient(
         var result = new List<IterationDto>();
         foreach (var item in doc.RootElement.GetProperty("value").EnumerateArray())
         {
-            var timeFrame = item.TryGetProperty("attributes", out var attrs) && attrs.TryGetProperty("timeFrame", out var tf)
-                ? tf.GetString()
-                : null;
+            string? timeFrame = null;
+            DateTime? finishDate = null;
+            if (item.TryGetProperty("attributes", out var attrs))
+            {
+                timeFrame = attrs.TryGetProperty("timeFrame", out var tf) ? tf.GetString() : null;
+                finishDate = attrs.TryGetProperty("finishDate", out var fd) && fd.ValueKind == JsonValueKind.String
+                    ? DateTime.Parse(fd.GetString()!, null, System.Globalization.DateTimeStyles.RoundtripKind)
+                    : null;
+            }
 
             result.Add(new IterationDto(
                 item.GetProperty("id").GetString()!,
                 item.GetProperty("name").GetString()!,
                 item.GetProperty("path").GetString()!,
-                string.Equals(timeFrame, "current", StringComparison.OrdinalIgnoreCase)));
+                string.Equals(timeFrame, "current", StringComparison.OrdinalIgnoreCase),
+                finishDate));
         }
 
         return result;
@@ -186,6 +193,24 @@ public class AzureDevOpsClient(
         return doc.RootElement.GetProperty("id").GetInt32();
     }
 
+    public async Task CloseWorkItemAsync(int id, CancellationToken ct = default)
+    {
+        var (client, conn) = GetConfiguredClient();
+        var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/{id}?api-version={_settings.ApiVersion}";
+
+        var ops = new object[]
+        {
+            new { op = "add", path = "/fields/System.State", value = _settings.TaskClosedState },
+        };
+
+        using var content = new StringContent(JsonSerializer.Serialize(ops), Encoding.UTF8);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json-patch+json");
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, url) { Content = content };
+        using var response = await client.SendAsync(request, ct);
+        await EnsureSuccessAsync(response, ct);
+    }
+
     private WorkItemDto ParseWorkItem(JsonElement item)
     {
         var fields = item.GetProperty("fields");
@@ -194,12 +219,28 @@ public class AzureDevOpsClient(
             ? ExtractIdentity(assignedEl)
             : null;
 
-        var sizeLabel = fields.TryGetProperty(_settings.SizeFieldReferenceName, out var sizeEl)
-            ? sizeEl.ToString()
-            : null;
+        string? sizeLabel = null;
+        if (fields.TryGetProperty(_settings.SizeFieldReferenceName, out var sizeEl) &&
+            sizeEl.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined))
+        {
+            sizeLabel = sizeEl.ValueKind == JsonValueKind.String ? sizeEl.GetString() : sizeEl.ToString();
+        }
 
         int? effortHours = fields.TryGetProperty(_settings.EffortFieldReferenceName, out var effortEl) && effortEl.ValueKind is JsonValueKind.Number
             ? (int)effortEl.GetDouble()
+            : null;
+
+        var tags = fields.TryGetProperty("System.Tags", out var tagsEl) && tagsEl.ValueKind == JsonValueKind.String
+            ? tagsEl.GetString()
+            : null;
+
+        (sizeLabel, effortHours) = SizeTagResolver.Resolve(sizeLabel, effortHours, tags);
+
+        var originalEstimate = ReadDouble(fields, "Microsoft.VSTS.Scheduling.OriginalEstimate");
+        var remainingWork = ReadDouble(fields, "Microsoft.VSTS.Scheduling.RemainingWork");
+        var completedWork = ReadDouble(fields, "Microsoft.VSTS.Scheduling.CompletedWork");
+        var state = fields.TryGetProperty("System.State", out var stateEl) && stateEl.ValueKind == JsonValueKind.String
+            ? stateEl.GetString()
             : null;
 
         // Assumimos que qualquer link "filho" já existente é uma Task gerada por este fluxo
@@ -218,8 +259,15 @@ public class AzureDevOpsClient(
             fields.GetProperty("System.IterationPath").GetString()!,
             fields.GetProperty("System.AreaPath").GetString()!,
             item.GetProperty("url").GetString()!,
-            alreadyHasTasks);
+            alreadyHasTasks,
+            originalEstimate,
+            remainingWork,
+            completedWork,
+            state);
     }
+
+    private static double? ReadDouble(JsonElement fields, string fieldName) =>
+        fields.TryGetProperty(fieldName, out var el) && el.ValueKind == JsonValueKind.Number ? el.GetDouble() : null;
 
     private static string? ExtractIdentity(JsonElement assignedEl)
     {

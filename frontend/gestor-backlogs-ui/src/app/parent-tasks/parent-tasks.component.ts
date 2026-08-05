@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../services/api.service';
-import { GenerateTasksResult, Iteration, ParentUserStory } from '../models/api-models';
+import { GenerateTasksResult, Iteration, ParentUserStory, WorkItemTask } from '../models/api-models';
 
 interface PreviewItem {
   title: string;
@@ -29,6 +29,19 @@ export class ParentTasksComponent implements OnInit {
   errorMessage = signal('');
   result = signal<GenerateTasksResult | null>(null);
 
+  orgUrl = signal('');
+  project = signal('');
+
+  expandedIds = signal<Set<number>>(new Set());
+  loadingTasksFor = signal<Set<number>>(new Set());
+  childTasksByParent = signal<Map<number, WorkItemTask[]>>(new Map());
+
+  upcomingSprints = computed(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    return this.sprints().filter((s) => !s.finishDate || new Date(s.finishDate) >= startOfToday);
+  });
+
   totalCount = computed(() => this.selectedUsIds().size * this.selectedSprintPaths().size);
 
   previewItems = computed<PreviewItem[]>(() => {
@@ -54,6 +67,20 @@ export class ParentTasksComponent implements OnInit {
         // Deixa a lista de sprints vazia - o card de USs ainda funciona sem ela.
       },
     });
+
+    this.api.getConnectionSettings().subscribe({
+      next: (settings) => {
+        this.orgUrl.set(settings.organizationUrl);
+        this.project.set(settings.project);
+      },
+      error: () => {
+        // Sem config salva, os links de work item ficam vazios - o restante da tela ainda funciona.
+      },
+    });
+  }
+
+  workItemUrl(id: number): string {
+    return `${this.orgUrl()}/${this.project()}/_workitems/edit/${id}`;
   }
 
   loadUserStories(): void {
@@ -94,6 +121,41 @@ export class ParentTasksComponent implements OnInit {
     const paths = new Set(this.selectedSprintPaths());
     checked ? paths.add(path) : paths.delete(path);
     this.selectedSprintPaths.set(paths);
+  }
+
+  toggleExpand(id: number): void {
+    const expanded = new Set(this.expandedIds());
+    if (expanded.has(id)) {
+      expanded.delete(id);
+      this.expandedIds.set(expanded);
+      return;
+    }
+
+    expanded.add(id);
+    this.expandedIds.set(expanded);
+
+    if (this.childTasksByParent().has(id)) {
+      return;
+    }
+
+    const loading = new Set(this.loadingTasksFor());
+    loading.add(id);
+    this.loadingTasksFor.set(loading);
+
+    this.api.getChildTasks(id).subscribe({
+      next: (tasks) => this.storeChildTasks(id, tasks),
+      error: () => this.storeChildTasks(id, []),
+    });
+  }
+
+  private storeChildTasks(id: number, tasks: WorkItemTask[]): void {
+    const cache = new Map(this.childTasksByParent());
+    cache.set(id, tasks);
+    this.childTasksByParent.set(cache);
+
+    const loading = new Set(this.loadingTasksFor());
+    loading.delete(id);
+    this.loadingTasksFor.set(loading);
   }
 
   buildTitle(usTitle: string, iterationPath: string): string {

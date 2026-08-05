@@ -19,6 +19,7 @@ export interface Iteration {
   name: string;
   path: string;
   isCurrent: boolean;
+  finishDate: string | null;
 }
 
 export interface WorkItemPreview {
@@ -31,6 +32,16 @@ export interface WorkItemPreview {
   alreadyHasTasks: boolean;
   sizeRecognized: boolean;
   plannedTaskTitles: string[];
+}
+
+export interface WorkItemTask {
+  id: number;
+  title: string;
+  assignedTo: string | null;
+  originalEstimate: number | null;
+  remainingWork: number | null;
+  completedWork: number | null;
+  state: string | null;
 }
 
 export interface GenerateTasksRequest {
@@ -61,10 +72,20 @@ export interface GenerateTasksResult {
   skipped: SkippedItemResult[];
 }
 
+export interface RegenerateTasksResult {
+  parentId: number;
+  parentTitle: string;
+  closedTasks: CreatedTaskInfo[];
+  createdTasks: CreatedTaskInfo[];
+}
+
 export interface ParentUserStory {
   id: number;
   title: string;
   assignedTo: string | null;
+  sizeLabel: string | null;
+  effortHours: number | null;
+  alreadyHasTasks: boolean;
 }
 
 export interface GenerateTasksFromParentRequest {

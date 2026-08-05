@@ -28,7 +28,10 @@
           <tr>
             <th></th>
             <th>Título</th>
+            <th>Size</th>
+            <th>Effort</th>
             <th>Responsável</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -41,9 +44,69 @@
                   (change)="toggleUs(us.id, $any($event.target).checked)"
                 />
               </td>
-              <td>{{ us.title }} <span class="text-dim">#{{ us.id }}</span></td>
+              <td>
+                <button
+                  type="button"
+                  class="ghost expand-toggle"
+                  (click)="toggleExpand(us.id)"
+                  [attr.aria-expanded]="expandedIds().has(us.id)"
+                >
+                  {{ expandedIds().has(us.id) ? '▾' : '▸' }}
+                </button>
+                <a [href]="workItemUrl(us.id)" target="_blank" rel="noopener" (click)="$event.stopPropagation()"
+                  >#{{ us.id }}</a
+                >
+                {{ us.title }}
+              </td>
+              <td>{{ us.sizeLabel ?? '-' }}</td>
+              <td>{{ us.effortHours ?? '-' }}</td>
               <td>{{ us.assignedTo ?? '-' }}</td>
+              <td>
+                @if (us.alreadyHasTasks) {
+                  <span class="badge warning">Já possui tasks</span>
+                } @else {
+                  <span class="badge success">Sem tasks</span>
+                }
+              </td>
             </tr>
+            @if (expandedIds().has(us.id)) {
+              <tr class="child-tasks-row">
+                <td [attr.colspan]="6">
+                  @if (loadingTasksFor().has(us.id)) {
+                    <div class="actions-bar" style="justify-content: center; padding: 8px;">
+                      <div class="spinner" style="width: 18px; height: 18px;"></div>
+                    </div>
+                  } @else if ((childTasksByParent().get(us.id) ?? []).length === 0) {
+                    <p class="text-dim" style="margin: 4px 0;">Nenhuma task encontrada.</p>
+                  } @else {
+                    <table class="child-tasks-table">
+                      <thead>
+                        <tr>
+                          <th>Título</th>
+                          <th>Responsável</th>
+                          <th>Estimadas</th>
+                          <th>Restantes</th>
+                          <th>Completadas</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (task of childTasksByParent().get(us.id); track task.id) {
+                          <tr>
+                            <td><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }}</td>
+                            <td>{{ task.assignedTo ?? '-' }}</td>
+                            <td>{{ task.originalEstimate ?? '-' }}</td>
+                            <td>{{ task.remainingWork ?? '-' }}</td>
+                            <td>{{ task.completedWork ?? '-' }}</td>
+                            <td>{{ task.state ?? '-' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  }
+                </td>
+              </tr>
+            }
           }
         </tbody>
       </table>
@@ -53,7 +116,7 @@
   <section class="card">
     <h2>3. Sprints</h2>
     <div class="actions-bar">
-      @for (sprint of sprints(); track sprint.id) {
+      @for (sprint of upcomingSprints(); track sprint.id) {
         <label style="display: flex; align-items: center; gap: 6px; font-size: 13.5px;">
           <input
             type="checkbox"
@@ -106,7 +169,14 @@
       <h2>Criadas</h2>
       <ul>
         @for (item of r.created; track item.parentId) {
-          <li><strong>{{ item.parentTitle }}</strong>: {{ item.createdTasks.length }} task(s)</li>
+          <li>
+            <strong>{{ item.parentTitle }}</strong>
+            <ul>
+              @for (task of item.createdTasks; track task.id) {
+                <li><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }}</li>
+              }
+            </ul>
+          </li>
         }
       </ul>
     }

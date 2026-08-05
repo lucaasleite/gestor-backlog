@@ -1,0 +1,158 @@
+<div>
+  <h1>Tasks por Item</h1>
+  <p class="text-dim">
+    Informe o ID de uma US, Incidente, Requisição ou qualquer outro work item e gere as tasks pra ele, sem
+    depender de sprint. O tamanho é lido do campo de Size ou, se estiver vazio, das tags (#PP #P #M #G #GG).
+  </p>
+</div>
+
+<section class="card">
+  <div class="actions-bar">
+    <div class="field" style="min-width: 200px;">
+      <label for="itemId">ID do work item</label>
+      <input
+        type="text"
+        id="itemId"
+        [ngModel]="workItemIdInput()"
+        (ngModelChange)="workItemIdInput.set($event)"
+        (keydown.enter)="search()"
+        placeholder="Ex: 48213"
+      />
+    </div>
+    <button type="button" (click)="search()" [disabled]="loading()">
+      {{ loading() ? 'Buscando...' : 'Buscar' }}
+    </button>
+  </div>
+  @if (error()) {
+    <div class="banner error" style="margin-top: 12px;">{{ error() }}</div>
+  }
+</section>
+
+@if (item(); as it) {
+  <section class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Tipo</th>
+            <th>Size</th>
+            <th>Effort</th>
+            <th>Responsável</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <a [href]="workItemUrl(it.id)" target="_blank" rel="noopener">#{{ it.id }}</a>
+              {{ it.title }}
+            </td>
+            <td>{{ it.workItemType }}</td>
+            <td>{{ it.sizeLabel ?? '-' }}</td>
+            <td>{{ it.effortHours ?? '-' }}</td>
+            <td>{{ it.assignedTo ?? '-' }}</td>
+            <td>
+              @if (it.alreadyHasTasks) {
+                <span class="badge warning">Já possui tasks</span>
+              } @else if (!it.sizeRecognized) {
+                <span class="badge warning">Tamanho não reconhecido</span>
+              } @else {
+                <span class="badge success">{{ it.plannedTaskTitles.length }} task(s) a criar</span>
+              }
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    @if (!it.alreadyHasTasks && it.sizeRecognized) {
+      <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+        @for (title of it.plannedTaskTitles; track title) {
+          <div
+            style="background: var(--surface-2); border-radius: 8px; padding: 8px 12px; font-size: 13.5px;"
+          >
+            {{ title }}
+          </div>
+        }
+      </div>
+
+      @if (generateError()) {
+        <div class="banner error" style="margin-top: 12px;">{{ generateError() }}</div>
+      }
+
+      <div class="actions-bar" style="margin-top: 16px;">
+        <button type="button" (click)="generate()" [disabled]="generating()">
+          {{ generating() ? 'Gerando...' : 'Gerar Tasks' }}
+        </button>
+      </div>
+    }
+
+    @if (it.alreadyHasTasks) {
+      @if (it.sizeRecognized) {
+        @if (regenerateError()) {
+          <div class="banner error" style="margin-top: 16px;">{{ regenerateError() }}</div>
+        }
+        <div class="actions-bar" style="margin-top: 16px;">
+          <button type="button" class="ghost" [disabled]="regenerating()" (click)="regenerate()">
+            {{ regenerating() ? 'Processando...' : 'Fechar e regerar' }}
+          </button>
+        </div>
+      }
+
+      <div style="margin-top: 16px;">
+        @if (loadingChildTasks()) {
+          <div class="actions-bar" style="justify-content: center; padding: 8px;">
+            <div class="spinner" style="width: 18px; height: 18px;"></div>
+          </div>
+        } @else if (childTasks().length === 0) {
+          <p class="text-dim">Nenhuma task encontrada.</p>
+        } @else {
+          <table class="child-tasks-table">
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Responsável</th>
+                <th>Estimadas</th>
+                <th>Restantes</th>
+                <th>Completadas</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (task of childTasks(); track task.id) {
+                <tr>
+                  <td><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }}</td>
+                  <td>{{ task.assignedTo ?? '-' }}</td>
+                  <td>{{ task.originalEstimate ?? '-' }}</td>
+                  <td>{{ task.remainingWork ?? '-' }}</td>
+                  <td>{{ task.completedWork ?? '-' }}</td>
+                  <td>{{ task.state ?? '-' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+  </section>
+}
+
+@if (generateResult(); as r) {
+  <section class="card">
+    <h2>Task(s) criada(s)</h2>
+    <ul>
+      @for (task of r.createdTasks; track task.id) {
+        <li><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }} ({{ task.hoursEstimate }}h)</li>
+      }
+    </ul>
+  </section>
+}
+
+@if (regenerateResult(); as r) {
+  <section class="card">
+    <div class="banner success">
+      {{ r.closedTasks.length }} task(s) fechada(s), {{ r.createdTasks.length }} nova(s) criada(s).
+    </div>
+  </section>
+}

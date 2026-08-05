@@ -69,7 +69,14 @@
       <table>
         <thead>
           <tr>
-            <th></th>
+            <th>
+              <input
+                type="checkbox"
+                [checked]="allSelected()"
+                [disabled]="selectableCount() === 0"
+                (change)="toggleAll($any($event.target).checked)"
+              />
+            </th>
             <th>Título</th>
             <th>Tipo</th>
             <th>Size</th>
@@ -89,7 +96,20 @@
                   (change)="toggleItem(item.id, $any($event.target).checked)"
                 />
               </td>
-              <td>{{ item.title }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="ghost expand-toggle"
+                  (click)="toggleExpand(item.id)"
+                  [attr.aria-expanded]="expandedIds().has(item.id)"
+                >
+                  {{ expandedIds().has(item.id) ? '▾' : '▸' }}
+                </button>
+                <a [href]="workItemUrl(item.id)" target="_blank" rel="noopener" (click)="$event.stopPropagation()"
+                  >#{{ item.id }}</a
+                >
+                {{ item.title }}
+              </td>
               <td>{{ item.workItemType }}</td>
               <td>{{ item.sizeLabel ?? '-' }}</td>
               <td>{{ item.effortHours ?? '-' }}</td>
@@ -97,6 +117,17 @@
               <td>
                 @if (item.alreadyHasTasks) {
                   <span class="badge warning">Já possui tasks</span>
+                  @if (item.sizeRecognized) {
+                    <button
+                      type="button"
+                      class="ghost"
+                      style="margin-left: 8px; padding: 3px 10px; font-size: 12px;"
+                      [disabled]="regeneratingIds().has(item.id)"
+                      (click)="regenerate(item)"
+                    >
+                      {{ regeneratingIds().has(item.id) ? 'Processando...' : 'Fechar e regerar' }}
+                    </button>
+                  }
                 } @else if (!item.sizeRecognized) {
                   <span class="badge warning">Tamanho não reconhecido</span>
                 } @else {
@@ -104,6 +135,61 @@
                 }
               </td>
             </tr>
+            @if (regenerateErrors().get(item.id); as regenError) {
+              <tr>
+                <td [attr.colspan]="7" style="padding: 0 10px 10px;">
+                  <div class="banner error">{{ regenError }}</div>
+                </td>
+              </tr>
+            }
+            @if (regenerateResults().get(item.id); as regenResult) {
+              <tr>
+                <td [attr.colspan]="7" style="padding: 0 10px 10px;">
+                  <div class="banner success">
+                    {{ regenResult.closedTasks.length }} task(s) fechada(s), {{ regenResult.createdTasks.length }}
+                    nova(s) criada(s).
+                  </div>
+                </td>
+              </tr>
+            }
+            @if (expandedIds().has(item.id)) {
+              <tr class="child-tasks-row">
+                <td [attr.colspan]="7">
+                  @if (loadingTasksFor().has(item.id)) {
+                    <div class="actions-bar" style="justify-content: center; padding: 8px;">
+                      <div class="spinner" style="width: 18px; height: 18px;"></div>
+                    </div>
+                  } @else if ((childTasksByParent().get(item.id) ?? []).length === 0) {
+                    <p class="text-dim" style="margin: 4px 0;">Nenhuma task encontrada.</p>
+                  } @else {
+                    <table class="child-tasks-table">
+                      <thead>
+                        <tr>
+                          <th>Título</th>
+                          <th>Responsável</th>
+                          <th>Estimadas</th>
+                          <th>Restantes</th>
+                          <th>Completadas</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (task of childTasksByParent().get(item.id); track task.id) {
+                          <tr>
+                            <td><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }}</td>
+                            <td>{{ task.assignedTo ?? '-' }}</td>
+                            <td>{{ task.originalEstimate ?? '-' }}</td>
+                            <td>{{ task.remainingWork ?? '-' }}</td>
+                            <td>{{ task.completedWork ?? '-' }}</td>
+                            <td>{{ task.state ?? '-' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  }
+                </td>
+              </tr>
+            }
           }
         </tbody>
       </table>

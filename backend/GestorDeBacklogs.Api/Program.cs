@@ -17,7 +17,17 @@ builder.Services.AddDataProtection()
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GestorBacklogs", "keys")));
 builder.Services.AddSingleton<ISecretProtector, SecretProtector>();
 builder.Services.AddSingleton<IConnectionSettingsStore, ConnectionSettingsStore>();
-builder.Services.AddScoped<IAzureDevOpsClient, AzureDevOpsClient>();
+
+// MOCK_DATA=true permite rodar a UI localmente com dados fake, sem depender de um Azure DevOps real.
+if (builder.Configuration["MOCK_DATA"] == "true")
+{
+    builder.Services.AddSingleton<IAzureDevOpsClient, MockAzureDevOpsClient>();
+}
+else
+{
+    builder.Services.AddScoped<IAzureDevOpsClient, AzureDevOpsClient>();
+}
+
 builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 
 var app = builder.Build();

@@ -10,7 +10,11 @@ public record WorkItemDto(
     string IterationPath,
     string AreaPath,
     string Url,
-    bool AlreadyHasTasks);
+    bool AlreadyHasTasks,
+    double? OriginalEstimate = null,
+    double? RemainingWork = null,
+    double? CompletedWork = null,
+    string? State = null);
 
 public record WorkItemPreviewDto(
     int Id,
@@ -23,4 +27,4 @@ public record WorkItemPreviewDto(
     bool SizeRecognized,
     IReadOnlyList<string> PlannedTaskTitles);
 
-public record ParentUserStoryDto(int Id, string Title, string? AssignedTo);
+public record ParentUserStoryDto(int Id, string Title, string? AssignedTo, string? SizeLabel, int? EffortHours, bool AlreadyHasTasks);

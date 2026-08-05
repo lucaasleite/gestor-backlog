@@ -11,3 +11,9 @@ public record GenerateTasksItemResult(int ParentId, string ParentTitle, IReadOnl
 public record SkippedItemResult(int ParentId, string ParentTitle, string Reason);
 
 public record GenerateTasksResult(IReadOnlyList<GenerateTasksItemResult> Created, IReadOnlyList<SkippedItemResult> Skipped);
+
+public record RegenerateTasksResult(
+    int ParentId,
+    string ParentTitle,
+    IReadOnlyList<CreatedTaskInfo> ClosedTasks,
+    IReadOnlyList<CreatedTaskInfo> CreatedTasks);

@@ -1,7 +1,14 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../services/api.service';
-import { GenerateTasksItemResult, GenerateTasksResult, Iteration, WorkItemPreview } from '../models/api-models';
+import {
+  GenerateTasksItemResult,
+  GenerateTasksResult,
+  Iteration,
+  RegenerateTasksResult,
+  WorkItemPreview,
+  WorkItemTask,
+} from '../models/api-models';
 
 @Component({
   selector: 'app-work-items',
@@ -24,13 +31,29 @@ export class WorkItemsComponent implements OnInit {
   errorMessage = signal('');
   result = signal<GenerateTasksResult | null>(null);
 
+  orgUrl = signal('');
+  project = signal('');
+
+  expandedIds = signal<Set<number>>(new Set());
+  loadingTasksFor = signal<Set<number>>(new Set());
+  childTasksByParent = signal<Map<number, WorkItemTask[]>>(new Map());
+
+  regeneratingIds = signal<Set<number>>(new Set());
+  regenerateResults = signal<Map<number, RegenerateTasksResult>>(new Map());
+  regenerateErrors = signal<Map<number, string>>(new Map());
+
   availableTypes = computed(() => [...new Set(this.workItems().map((wi) => wi.workItemType))].sort());
 
   eligibleItems = computed(() => this.workItems().filter((wi) => this.selectedTypes().has(wi.workItemType)));
 
-  selectableCount = computed(
-    () => this.eligibleItems().filter((wi) => !wi.alreadyHasTasks && wi.sizeRecognized).length,
-  );
+  selectableItems = computed(() => this.eligibleItems().filter((wi) => !wi.alreadyHasTasks && wi.sizeRecognized));
+
+  selectableCount = computed(() => this.selectableItems().length);
+
+  allSelected = computed(() => {
+    const selectable = this.selectableItems();
+    return selectable.length > 0 && selectable.every((wi) => this.selectedIds().has(wi.id));
+  });
 
   constructor(private readonly api: ApiService) {}
 
@@ -38,9 +61,17 @@ export class WorkItemsComponent implements OnInit {
     this.loadSprints();
 
     this.api.getConnectionSettings().subscribe({
-      next: (settings) => this.areaPathConfigured.set(!!settings.areaPath?.trim()),
+      next: (settings) => {
+        this.areaPathConfigured.set(!!settings.areaPath?.trim());
+        this.orgUrl.set(settings.organizationUrl);
+        this.project.set(settings.project);
+      },
       error: () => this.areaPathConfigured.set(false),
     });
+  }
+
+  workItemUrl(id: number): string {
+    return `${this.orgUrl()}/${this.project()}/_workitems/edit/${id}`;
   }
 
   loadSprints(): void {
@@ -108,6 +139,96 @@ export class WorkItemsComponent implements OnInit {
     const ids = new Set(this.selectedIds());
     checked ? ids.add(id) : ids.delete(id);
     this.selectedIds.set(ids);
+  }
+
+  toggleAll(checked: boolean): void {
+    const ids = new Set(this.selectedIds());
+    for (const item of this.selectableItems()) {
+      checked ? ids.add(item.id) : ids.delete(item.id);
+    }
+    this.selectedIds.set(ids);
+  }
+
+  toggleExpand(id: number): void {
+    const expanded = new Set(this.expandedIds());
+    if (expanded.has(id)) {
+      expanded.delete(id);
+      this.expandedIds.set(expanded);
+      return;
+    }
+
+    expanded.add(id);
+    this.expandedIds.set(expanded);
+
+    if (!this.childTasksByParent().has(id)) {
+      this.loadChildTasks(id);
+    }
+  }
+
+  private loadChildTasks(id: number): void {
+    const loading = new Set(this.loadingTasksFor());
+    loading.add(id);
+    this.loadingTasksFor.set(loading);
+
+    this.api.getChildTasks(id).subscribe({
+      next: (tasks) => this.storeChildTasks(id, tasks),
+      error: () => this.storeChildTasks(id, []),
+    });
+  }
+
+  private storeChildTasks(id: number, tasks: WorkItemTask[]): void {
+    const cache = new Map(this.childTasksByParent());
+    cache.set(id, tasks);
+    this.childTasksByParent.set(cache);
+
+    const loading = new Set(this.loadingTasksFor());
+    loading.delete(id);
+    this.loadingTasksFor.set(loading);
+  }
+
+  regenerate(item: WorkItemPreview): void {
+    const confirmed = window.confirm(
+      `Isso vai fechar a(s) task(s) existente(s) de "${item.title}" e criar novas seguindo o padrão de tamanho (${item.sizeLabel ?? item.effortHours + 'h'}). Continuar?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    const active = new Set(this.regeneratingIds());
+    active.add(item.id);
+    this.regeneratingIds.set(active);
+
+    const errors = new Map(this.regenerateErrors());
+    errors.delete(item.id);
+    this.regenerateErrors.set(errors);
+
+    this.api.regenerateTasks(item.id).subscribe({
+      next: (result) => {
+        this.finishRegenerating(item.id);
+
+        const results = new Map(this.regenerateResults());
+        results.set(item.id, result);
+        this.regenerateResults.set(results);
+
+        const expanded = new Set(this.expandedIds());
+        expanded.add(item.id);
+        this.expandedIds.set(expanded);
+        this.loadChildTasks(item.id);
+      },
+      error: (err) => {
+        this.finishRegenerating(item.id);
+
+        const errors = new Map(this.regenerateErrors());
+        errors.set(item.id, err?.error?.message ?? 'Erro ao fechar/gerar tasks.');
+        this.regenerateErrors.set(errors);
+      },
+    });
+  }
+
+  private finishRegenerating(id: number): void {
+    const active = new Set(this.regeneratingIds());
+    active.delete(id);
+    this.regeneratingIds.set(active);
   }
 
   formatCreatedTasks(item: GenerateTasksItemResult): string {

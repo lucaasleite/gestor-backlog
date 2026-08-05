@@ -7,4 +7,5 @@ public class AzureDevOpsSettings
     public string SizeFieldReferenceName { get; set; } = "Custom.EstimativaSize";
     public string EffortFieldReferenceName { get; set; } = "Microsoft.VSTS.Scheduling.Effort";
     public string ApiVersion { get; set; } = "7.1";
+    public string TaskClosedState { get; set; } = "Closed";
 }

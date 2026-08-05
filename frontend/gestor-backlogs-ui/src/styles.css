@@ -387,3 +387,34 @@ input[type="checkbox"] {
   color: var(--on-bg-dim);
   font-size: 13px;
 }
+
+/* Expandable rows */
+.expand-toggle {
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1;
+  margin-right: 6px;
+}
+
+.child-tasks-row td {
+  background: var(--surface-2);
+  padding: 10px 10px 10px 34px;
+}
+
+.child-tasks-table {
+  font-size: 13px;
+}
+
+.child-tasks-table th {
+  padding: 0 8px 6px;
+}
+
+.child-tasks-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--outline);
+}
+
+.child-tasks-table tr:last-child td {
+  border-bottom: none;
+}
