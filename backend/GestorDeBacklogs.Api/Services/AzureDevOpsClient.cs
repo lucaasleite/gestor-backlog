@@ -22,10 +22,10 @@ public class AzureDevOpsClient(
         return response.IsSuccessStatusCode;
     }
 
-    public async Task<IReadOnlyList<IterationDto>> GetIterationsAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<IterationDto>> GetIterationsAsync(string teamName, CancellationToken ct = default)
     {
         var (client, conn) = GetConfiguredClient();
-        var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/{Uri.EscapeDataString(conn.Team)}/_apis/work/teamsettings/iterations?api-version={_settings.ApiVersion}";
+        var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/{Uri.EscapeDataString(teamName)}/_apis/work/teamsettings/iterations?api-version={_settings.ApiVersion}";
         using var response = await client.GetAsync(url, ct);
         await EnsureSuccessAsync(response, ct);
 
@@ -54,7 +54,7 @@ public class AzureDevOpsClient(
         return result;
     }
 
-    public async Task<IReadOnlyList<int>> QueryWorkItemIdsForIterationAsync(string iterationPath, CancellationToken ct = default)
+    public async Task<IReadOnlyList<int>> QueryWorkItemIdsForIterationAsync(string iterationPath, string? areaPath, CancellationToken ct = default)
     {
         var (client, conn) = GetConfiguredClient();
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/wiql?api-version={_settings.ApiVersion}";
@@ -64,9 +64,9 @@ public class AzureDevOpsClient(
         var query = "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = '" + escapedProject + "' " +
                     "AND [System.IterationPath] = '" + escapedIterationPath + "' AND [System.WorkItemType] <> ''";
 
-        if (!string.IsNullOrWhiteSpace(conn.AreaPath))
+        if (!string.IsNullOrWhiteSpace(areaPath))
         {
-            var escapedAreaPath = conn.AreaPath.Replace("'", "''");
+            var escapedAreaPath = areaPath.Replace("'", "''");
             query += " AND [System.AreaPath] UNDER '" + escapedAreaPath + "'";
         }
 

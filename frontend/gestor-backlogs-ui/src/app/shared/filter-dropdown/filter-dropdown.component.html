@@ -1,0 +1,35 @@
+<button type="button" class="ghost filter-dropdown-toggle" [class.active]="isFiltering()" (click)="toggleOpen()">
+  {{ label }}{{ isFiltering() ? ' (' + selected.size + ')' : '' }}
+  <span class="filter-dropdown-caret">▾</span>
+</button>
+
+@if (open()) {
+  <div class="filter-dropdown-panel">
+    @if (searchable) {
+      <input
+        type="text"
+        class="filter-dropdown-search"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        placeholder="Buscar..."
+      />
+    }
+
+    <div class="filter-dropdown-options">
+      @for (option of filteredOptions(); track option) {
+        <label class="filter-dropdown-option">
+          <input
+            type="checkbox"
+            [checked]="selected.has(option)"
+            (change)="toggleOption(option, $any($event.target).checked)"
+          />
+          {{ option }}
+        </label>
+      } @empty {
+        <span class="text-dim" style="padding: 6px 4px;">Nenhuma opção.</span>
+      }
+    </div>
+
+    <button type="button" class="ghost filter-dropdown-clear" (click)="clear()">✕ Limpar</button>
+  </div>
+}

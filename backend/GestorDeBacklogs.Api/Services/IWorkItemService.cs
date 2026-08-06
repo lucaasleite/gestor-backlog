@@ -4,7 +4,7 @@ namespace GestorDeBacklogs.Api.Services;
 
 public interface IWorkItemService
 {
-    Task<IReadOnlyList<WorkItemPreviewDto>> GetSprintPreviewAsync(string iterationPath, CancellationToken ct = default);
+    Task<IReadOnlyList<WorkItemPreviewDto>> GetSprintPreviewAsync(string iterationPath, string? areaPath, CancellationToken ct = default);
 
     Task<GenerateTasksResult> GenerateTasksAsync(GenerateTasksRequest request, CancellationToken ct = default);
 

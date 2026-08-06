@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../services/api.service';
-import { GenerateTasksResult, Iteration, ParentUserStory, WorkItemTask } from '../models/api-models';
+import { GenerateTasksResult, Iteration, ParentUserStory, TeamConfig, WorkItemTask } from '../models/api-models';
 
 interface PreviewItem {
   title: string;
@@ -22,8 +22,15 @@ export class ParentTasksComponent implements OnInit {
   userStories = signal<ParentUserStory[]>([]);
   selectedUsIds = signal<Set<number>>(new Set());
 
+  teams = signal<TeamConfig[]>([]);
+  selectedTeamName = signal('');
+
   sprints = signal<Iteration[]>([]);
   selectedSprintPaths = signal<Set<string>>(new Set());
+
+  closingIds = signal<Set<number>>(new Set());
+  closedIds = signal<Set<number>>(new Set());
+  closeErrors = signal<Map<number, string>>(new Map());
 
   generating = signal(false);
   errorMessage = signal('');
@@ -61,26 +68,43 @@ export class ParentTasksComponent implements OnInit {
   constructor(private readonly api: ApiService) {}
 
   ngOnInit(): void {
-    this.api.getSprints().subscribe({
-      next: (sprints) => this.sprints.set(sprints),
-      error: () => {
-        // Deixa a lista de sprints vazia - o card de USs ainda funciona sem ela.
-      },
-    });
-
     this.api.getConnectionSettings().subscribe({
       next: (settings) => {
         this.orgUrl.set(settings.organizationUrl);
         this.project.set(settings.project);
+        this.teams.set(settings.teams);
+        if (settings.teams.length > 0) {
+          this.selectedTeamName.set(settings.teams[0].name);
+          this.loadSprints();
+        }
       },
       error: () => {
-        // Sem config salva, os links de work item ficam vazios - o restante da tela ainda funciona.
+        // Sem config salva, o guard já teria redirecionado pra /config antes de chegar aqui.
       },
     });
   }
 
   workItemUrl(id: number): string {
     return `${this.orgUrl()}/${this.project()}/_workitems/edit/${id}`;
+  }
+
+  onTeamChange(name: string): void {
+    this.selectedTeamName.set(name);
+    this.selectedSprintPaths.set(new Set());
+    this.loadSprints();
+  }
+
+  loadSprints(): void {
+    if (!this.selectedTeamName()) {
+      return;
+    }
+
+    this.api.getSprints(this.selectedTeamName()).subscribe({
+      next: (sprints) => this.sprints.set(sprints),
+      error: () => {
+        // Deixa a lista de sprints vazia - o card de USs ainda funciona sem ela.
+      },
+    });
   }
 
   loadUserStories(): void {
@@ -115,6 +139,42 @@ export class ParentTasksComponent implements OnInit {
     const ids = new Set(this.selectedUsIds());
     checked ? ids.add(id) : ids.delete(id);
     this.selectedUsIds.set(ids);
+  }
+
+  closeUs(us: ParentUserStory): void {
+    const confirmed = window.confirm(`Isso vai fechar a US "${us.title}" (#${us.id}) no Azure DevOps. Continuar?`);
+    if (!confirmed) {
+      return;
+    }
+
+    const closing = new Set(this.closingIds());
+    closing.add(us.id);
+    this.closingIds.set(closing);
+
+    const errors = new Map(this.closeErrors());
+    errors.delete(us.id);
+    this.closeErrors.set(errors);
+
+    this.api.closeWorkItem(us.id).subscribe({
+      next: () => {
+        this.finishClosing(us.id);
+        const closed = new Set(this.closedIds());
+        closed.add(us.id);
+        this.closedIds.set(closed);
+      },
+      error: (err) => {
+        this.finishClosing(us.id);
+        const errs = new Map(this.closeErrors());
+        errs.set(us.id, err?.error?.message ?? 'Erro ao fechar a US.');
+        this.closeErrors.set(errs);
+      },
+    });
+  }
+
+  private finishClosing(id: number): void {
+    const closing = new Set(this.closingIds());
+    closing.delete(id);
+    this.closingIds.set(closing);
   }
 
   toggleSprint(path: string, checked: boolean): void {

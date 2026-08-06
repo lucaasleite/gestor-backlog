@@ -25,6 +25,7 @@ public record WorkItemPreviewDto(
     string? AssignedTo,
     bool AlreadyHasTasks,
     bool SizeRecognized,
-    IReadOnlyList<string> PlannedTaskTitles);
+    IReadOnlyList<string> PlannedTaskTitles,
+    string? State);
 
 public record ParentUserStoryDto(int Id, string Title, string? AssignedTo, string? SizeLabel, int? EffortHours, bool AlreadyHasTasks);

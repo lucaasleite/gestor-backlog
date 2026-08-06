@@ -7,9 +7,9 @@ public interface IAzureDevOpsClient
 {
     Task<bool> TestConnectionAsync(CancellationToken ct = default);
 
-    Task<IReadOnlyList<IterationDto>> GetIterationsAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<IterationDto>> GetIterationsAsync(string teamName, CancellationToken ct = default);
 
-    Task<IReadOnlyList<int>> QueryWorkItemIdsForIterationAsync(string iterationPath, CancellationToken ct = default);
+    Task<IReadOnlyList<int>> QueryWorkItemIdsForIterationAsync(string iterationPath, string? areaPath, CancellationToken ct = default);
 
     Task<IReadOnlyList<WorkItemDto>> GetWorkItemsByIdsAsync(IReadOnlyList<int> ids, CancellationToken ct = default);
 

@@ -33,14 +33,16 @@ export class ApiService {
     return this.http.post<{ success: boolean; message?: string }>(`${this.baseUrl}/config/test-connection`, {});
   }
 
-  getSprints(): Observable<Iteration[]> {
-    return this.http.get<Iteration[]>(`${this.baseUrl}/sprints`);
+  getSprints(team: string): Observable<Iteration[]> {
+    return this.http.get<Iteration[]>(`${this.baseUrl}/sprints`, { params: { team } });
   }
 
-  getWorkItems(iterationPath: string): Observable<WorkItemPreview[]> {
-    return this.http.get<WorkItemPreview[]>(`${this.baseUrl}/workitems`, {
-      params: { iterationPath },
-    });
+  getWorkItems(iterationPath: string, areaPath: string | null): Observable<WorkItemPreview[]> {
+    const params: Record<string, string> = { iterationPath };
+    if (areaPath) {
+      params['areaPath'] = areaPath;
+    }
+    return this.http.get<WorkItemPreview[]>(`${this.baseUrl}/workitems`, { params });
   }
 
   generateTasks(request: GenerateTasksRequest): Observable<GenerateTasksResult> {
@@ -69,5 +71,9 @@ export class ApiService {
 
   generateTaskForItem(id: number): Observable<GenerateTasksItemResult> {
     return this.http.post<GenerateTasksItemResult>(`${this.baseUrl}/workitems/${id}/generate-tasks`, {});
+  }
+
+  closeWorkItem(id: number): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/workitems/${id}/close`, {});
   }
 }

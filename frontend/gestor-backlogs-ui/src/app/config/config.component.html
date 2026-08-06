@@ -3,7 +3,7 @@
   <p class="text-dim">Organização, projeto, time e credencial usados pra buscar e criar work items.</p>
 </div>
 
-<section class="card" style="max-width: 560px;">
+<section class="card" style="max-width: 760px;">
   <div style="display: flex; flex-direction: column; gap: 16px;">
     <div class="field">
       <label for="organizationUrl">Organização (URL)</label>
@@ -22,14 +22,36 @@
     </div>
 
     <div class="field">
-      <label for="team">Team</label>
-      <input type="text" id="team" name="team" [(ngModel)]="model.team" placeholder="Nome do time no Azure DevOps" />
-    </div>
+      <label>Times</label>
+      <span class="hint">
+        Cada time tem um nome (o time do Azure DevOps, usado pra buscar as sprints) e um Area Path (usado
+        pra filtrar os work items desse time).
+      </span>
 
-    <div class="field">
-      <label for="areaPath">Area Path (opcional)</label>
-      <input type="text" id="areaPath" name="areaPath" [(ngModel)]="model.areaPath" placeholder="Ailos\Nome da Área" />
-      <span class="hint">Restringe aos work items desse time quando iterações são compartilhadas entre times.</span>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
+        @for (team of model.teams; track trackByIndex($index)) {
+          <div class="actions-bar" style="align-items: flex-start;">
+            <div class="field" style="flex: 1; min-width: 160px;">
+              <input type="text" [(ngModel)]="team.name" [attr.name]="'teamName' + $index" placeholder="Ex: Plataforma e DevOps" />
+            </div>
+            <div class="field" style="flex: 2; min-width: 240px;">
+              <input
+                type="text"
+                [(ngModel)]="team.areaPath"
+                [attr.name]="'teamAreaPath' + $index"
+                placeholder="Ex: Ailos\Gerencia de SRE\Plataforma e DevOps"
+              />
+            </div>
+            <button type="button" class="ghost" (click)="removeTeam($index)" [disabled]="model.teams.length === 1">
+              Remover
+            </button>
+          </div>
+        }
+      </div>
+
+      <div class="actions-bar" style="margin-top: 4px;">
+        <button type="button" class="ghost" (click)="addTeam()">+ Adicionar time</button>
+      </div>
     </div>
 
     <div class="field">

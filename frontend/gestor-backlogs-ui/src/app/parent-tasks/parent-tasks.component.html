@@ -62,13 +62,33 @@
               <td>{{ us.effortHours ?? '-' }}</td>
               <td>{{ us.assignedTo ?? '-' }}</td>
               <td>
-                @if (us.alreadyHasTasks) {
-                  <span class="badge warning">Já possui tasks</span>
+                @if (closedIds().has(us.id)) {
+                  <span class="badge">Fechada</span>
                 } @else {
-                  <span class="badge success">Sem tasks</span>
+                  @if (us.alreadyHasTasks) {
+                    <span class="badge warning">Já possui tasks</span>
+                  } @else {
+                    <span class="badge success">Sem tasks</span>
+                  }
+                  <button
+                    type="button"
+                    class="ghost"
+                    style="margin-left: 8px; padding: 3px 10px; font-size: 12px;"
+                    [disabled]="closingIds().has(us.id)"
+                    (click)="closeUs(us)"
+                  >
+                    {{ closingIds().has(us.id) ? 'Fechando...' : 'Fechar' }}
+                  </button>
                 }
               </td>
             </tr>
+            @if (closeErrors().get(us.id); as closeError) {
+              <tr>
+                <td [attr.colspan]="6" style="padding: 0 10px 10px;">
+                  <div class="banner error">{{ closeError }}</div>
+                </td>
+              </tr>
+            }
             @if (expandedIds().has(us.id)) {
               <tr class="child-tasks-row">
                 <td [attr.colspan]="6">
@@ -115,6 +135,14 @@
 
   <section class="card">
     <h2>3. Sprints</h2>
+    <div class="field" style="max-width: 260px; margin-bottom: 12px;">
+      <label for="parentTeam">Time</label>
+      <select id="parentTeam" [ngModel]="selectedTeamName()" (ngModelChange)="onTeamChange($event)">
+        @for (team of teams(); track team.name) {
+          <option [value]="team.name">{{ team.name }}</option>
+        }
+      </select>
+    </div>
     <div class="actions-bar">
       @for (sprint of upcomingSprints(); track sprint.id) {
         <label style="display: flex; align-items: center; gap: 6px; font-size: 13.5px;">

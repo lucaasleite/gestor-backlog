@@ -1,16 +1,19 @@
+export interface TeamConfig {
+  name: string;
+  areaPath: string;
+}
+
 export interface ConnectionSettings {
   organizationUrl: string;
   project: string;
-  team: string;
-  areaPath?: string;
+  teams: TeamConfig[];
   personalAccessToken?: string;
 }
 
 export interface ConnectionSettingsResponse {
   organizationUrl: string;
   project: string;
-  team: string;
-  areaPath?: string;
+  teams: TeamConfig[];
   hasToken: boolean;
 }
 
@@ -32,6 +35,7 @@ export interface WorkItemPreview {
   alreadyHasTasks: boolean;
   sizeRecognized: boolean;
   plannedTaskTitles: string[];
+  state: string | null;
 }
 
 export interface WorkItemTask {

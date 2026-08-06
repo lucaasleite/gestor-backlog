@@ -40,6 +40,7 @@
             <th>Effort</th>
             <th>Responsável</th>
             <th>Status</th>
+            <th>Ação</th>
           </tr>
         </thead>
         <tbody>
@@ -52,6 +53,7 @@
             <td>{{ it.sizeLabel ?? '-' }}</td>
             <td>{{ it.effortHours ?? '-' }}</td>
             <td>{{ it.assignedTo ?? '-' }}</td>
+            <td>{{ it.state ?? '-' }}</td>
             <td>
               @if (it.alreadyHasTasks) {
                 <span class="badge warning">Já possui tasks</span>
@@ -67,14 +69,21 @@
     </div>
 
     @if (!it.alreadyHasTasks && it.sizeRecognized) {
-      <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
-        @for (title of it.plannedTaskTitles; track title) {
-          <div
-            style="background: var(--surface-2); border-radius: 8px; padding: 8px 12px; font-size: 13.5px;"
-          >
-            {{ title }}
-          </div>
-        }
+      <div style="margin-top: 16px;">
+        <table class="child-tasks-table">
+          <thead>
+            <tr>
+              <th>Título</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (title of it.plannedTaskTitles; track title) {
+              <tr>
+                <td>{{ title }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
 
       @if (generateError()) {

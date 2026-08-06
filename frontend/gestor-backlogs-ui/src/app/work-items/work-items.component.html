@@ -5,6 +5,15 @@
 
 <section class="card">
   <div class="actions-bar">
+    <div class="field" style="min-width: 200px;">
+      <label for="team">Time</label>
+      <select id="team" [ngModel]="selectedTeamName()" (ngModelChange)="onTeamChange($event)">
+        @for (team of teams(); track team.name) {
+          <option [value]="team.name">{{ team.name }}</option>
+        }
+      </select>
+    </div>
+
     <div class="field" style="min-width: 240px;">
       <label for="sprint">Sprint</label>
       <select
@@ -26,30 +35,32 @@
     >
       {{ loadingWorkItems() ? 'Carregando...' : 'Carregar Work Items' }}
     </button>
-
-    @if (availableTypes().length > 0) {
-      <div class="actions-bar">
-        @for (type of availableTypes(); track type) {
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 13.5px;">
-            <input
-              type="checkbox"
-              [checked]="selectedTypes().has(type)"
-              (change)="toggleType(type, $any($event.target).checked)"
-            />
-            {{ type }}
-          </label>
-        }
-      </div>
-    }
   </div>
+
+  @if (hasLoadedOnce() && workItems().length > 0) {
+    <div class="actions-bar" style="margin-top: 12px;">
+      <app-filter-dropdown
+        label="Types"
+        [options]="availableTypes()"
+        [selected]="selectedTypes()"
+        (selectedChange)="selectedTypes.set($event)"
+      />
+      <app-filter-dropdown
+        label="Assigned to"
+        [options]="availableAssignees()"
+        [selected]="selectedAssignees()"
+        [searchable]="true"
+        (selectedChange)="selectedAssignees.set($event)"
+      />
+      <app-filter-dropdown
+        label="States"
+        [options]="availableStates()"
+        [selected]="selectedStates()"
+        (selectedChange)="selectedStates.set($event)"
+      />
+    </div>
+  }
 </section>
-
-@if (areaPathConfigured() === false) {
-  <div class="banner warning">
-    Nenhum Area Path configurado — "Carregar Work Items" vai trazer itens de toda a organização, não só do seu time.
-    Configure o Area Path na tela de Configuração para restringir.
-  </div>
-}
 
 @if (errorMessage()) {
   <div class="banner error">{{ errorMessage() }}</div>
@@ -83,6 +94,7 @@
             <th>Effort</th>
             <th>Responsável</th>
             <th>Status</th>
+            <th>Ação</th>
           </tr>
         </thead>
         <tbody>
@@ -114,6 +126,7 @@
               <td>{{ item.sizeLabel ?? '-' }}</td>
               <td>{{ item.effortHours ?? '-' }}</td>
               <td>{{ item.assignedTo ?? '-' }}</td>
+              <td>{{ item.state ?? '-' }}</td>
               <td>
                 @if (item.alreadyHasTasks) {
                   <span class="badge warning">Já possui tasks</span>
@@ -137,14 +150,14 @@
             </tr>
             @if (regenerateErrors().get(item.id); as regenError) {
               <tr>
-                <td [attr.colspan]="7" style="padding: 0 10px 10px;">
+                <td [attr.colspan]="8" style="padding: 0 10px 10px;">
                   <div class="banner error">{{ regenError }}</div>
                 </td>
               </tr>
             }
             @if (regenerateResults().get(item.id); as regenResult) {
               <tr>
-                <td [attr.colspan]="7" style="padding: 0 10px 10px;">
+                <td [attr.colspan]="8" style="padding: 0 10px 10px;">
                   <div class="banner success">
                     {{ regenResult.closedTasks.length }} task(s) fechada(s), {{ regenResult.createdTasks.length }}
                     nova(s) criada(s).
@@ -154,7 +167,7 @@
             }
             @if (expandedIds().has(item.id)) {
               <tr class="child-tasks-row">
-                <td [attr.colspan]="7">
+                <td [attr.colspan]="8">
                   @if (loadingTasksFor().has(item.id)) {
                     <div class="actions-bar" style="justify-content: center; padding: 8px;">
                       <div class="spinner" style="width: 18px; height: 18px;"></div>

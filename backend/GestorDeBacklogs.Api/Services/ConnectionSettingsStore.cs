@@ -4,7 +4,7 @@ using GestorDeBacklogs.Api.Security;
 
 namespace GestorDeBacklogs.Api.Services;
 
-public record StoredConnectionSettings(string OrganizationUrl, string Project, string Team, string? AreaPath, string? ProtectedPat);
+public record StoredConnectionSettings(string OrganizationUrl, string Project, IReadOnlyList<TeamConfig> Teams, string? ProtectedPat);
 
 public interface IConnectionSettingsStore
 {
@@ -44,7 +44,7 @@ public class ConnectionSettingsStore : IConnectionSettingsStore
         var raw = GetRaw();
         return raw is null
             ? null
-            : new ConnectionSettingsResponse(raw.OrganizationUrl, raw.Project, raw.Team, raw.AreaPath, !string.IsNullOrEmpty(raw.ProtectedPat));
+            : new ConnectionSettingsResponse(raw.OrganizationUrl, raw.Project, raw.Teams, !string.IsNullOrEmpty(raw.ProtectedPat));
     }
 
     public string? GetDecryptedPat()
@@ -61,7 +61,7 @@ public class ConnectionSettingsStore : IConnectionSettingsStore
             ? _secretProtector.Protect(dto.PersonalAccessToken)
             : GetRaw()?.ProtectedPat;
 
-        var stored = new StoredConnectionSettings(dto.OrganizationUrl.TrimEnd('/'), dto.Project, dto.Team, dto.AreaPath, protectedPat);
+        var stored = new StoredConnectionSettings(dto.OrganizationUrl.TrimEnd('/'), dto.Project, dto.Teams, protectedPat);
         File.WriteAllText(ConfigPath, JsonSerializer.Serialize(stored));
     }
 }

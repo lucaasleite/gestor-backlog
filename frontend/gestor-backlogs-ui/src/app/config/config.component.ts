@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../services/api.service';
-import { ConnectionSettings } from '../models/api-models';
+import { ConnectionSettings, TeamConfig } from '../models/api-models';
 
 @Component({
   selector: 'app-config',
@@ -15,8 +15,7 @@ export class ConfigComponent implements OnInit {
   model: ConnectionSettings = {
     organizationUrl: 'https://dev.azure.com/Ailos',
     project: 'Ailos',
-    team: '',
-    areaPath: '',
+    teams: [{ name: '', areaPath: '' }],
     personalAccessToken: '',
   };
 
@@ -34,8 +33,7 @@ export class ConfigComponent implements OnInit {
       next: (settings) => {
         this.model.organizationUrl = settings.organizationUrl;
         this.model.project = settings.project;
-        this.model.team = settings.team;
-        this.model.areaPath = settings.areaPath ?? '';
+        this.model.teams = settings.teams.length > 0 ? settings.teams : [{ name: '', areaPath: '' }];
         this.hasStoredToken.set(settings.hasToken);
       },
       error: () => {
@@ -44,11 +42,33 @@ export class ConfigComponent implements OnInit {
     });
   }
 
+  addTeam(): void {
+    this.model.teams = [...this.model.teams, { name: '', areaPath: '' }];
+  }
+
+  removeTeam(index: number): void {
+    this.model.teams = this.model.teams.filter((_, i) => i !== index);
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
   save(): void {
     this.status.set('testing');
     this.statusMessage.set('');
 
-    this.api.saveConnectionSettings(this.model).subscribe({
+    const teams = this.model.teams
+      .map((t): TeamConfig => ({ name: t.name.trim(), areaPath: t.areaPath.trim() }))
+      .filter((t) => t.name.length > 0);
+
+    if (teams.length === 0) {
+      this.status.set('error');
+      this.statusMessage.set('Cadastre pelo menos um time.');
+      return;
+    }
+
+    this.api.saveConnectionSettings({ ...this.model, teams }).subscribe({
       next: () => {
         this.api.testConnection().subscribe({
           next: (result) => {

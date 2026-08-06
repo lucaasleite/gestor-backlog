@@ -1,11 +1,13 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../services/api.service';
+import { FilterDropdownComponent } from '../shared/filter-dropdown/filter-dropdown.component';
 import {
   GenerateTasksItemResult,
   GenerateTasksResult,
   Iteration,
   RegenerateTasksResult,
+  TeamConfig,
   WorkItemPreview,
   WorkItemTask,
 } from '../models/api-models';
@@ -13,20 +15,24 @@ import {
 @Component({
   selector: 'app-work-items',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, FilterDropdownComponent],
   templateUrl: './work-items.component.html',
   styles: ':host { display: contents; }',
 })
 export class WorkItemsComponent implements OnInit {
+  teams = signal<TeamConfig[]>([]);
+  selectedTeamName = signal<string>('');
+
   sprints = signal<Iteration[]>([]);
   selectedIterationPath = signal<string>('');
   workItems = signal<WorkItemPreview[]>([]);
   selectedTypes = signal<Set<string>>(new Set());
+  selectedAssignees = signal<Set<string>>(new Set());
+  selectedStates = signal<Set<string>>(new Set());
   selectedIds = signal<Set<number>>(new Set());
   loadingSprints = signal(false);
   loadingWorkItems = signal(false);
   hasLoadedOnce = signal(false);
-  areaPathConfigured = signal<boolean | null>(null);
   generating = signal(false);
   errorMessage = signal('');
   result = signal<GenerateTasksResult | null>(null);
@@ -42,9 +48,27 @@ export class WorkItemsComponent implements OnInit {
   regenerateResults = signal<Map<number, RegenerateTasksResult>>(new Map());
   regenerateErrors = signal<Map<number, string>>(new Map());
 
-  availableTypes = computed(() => [...new Set(this.workItems().map((wi) => wi.workItemType))].sort());
+  selectedTeam = computed(() => this.teams().find((t) => t.name === this.selectedTeamName()) ?? null);
 
-  eligibleItems = computed(() => this.workItems().filter((wi) => this.selectedTypes().has(wi.workItemType)));
+  availableTypes = computed(() => [...new Set(this.workItems().map((wi) => wi.workItemType))].sort());
+  availableAssignees = computed(() =>
+    [...new Set(this.workItems().map((wi) => wi.assignedTo ?? '(Sem responsável)'))].sort(),
+  );
+  availableStates = computed(() => [...new Set(this.workItems().map((wi) => wi.state ?? '(Sem status)'))].sort());
+
+  // Segue a semântica do Azure DevOps: nenhuma opção marcada num filtro = sem filtro (mostra tudo).
+  eligibleItems = computed(() => {
+    const types = this.selectedTypes();
+    const assignees = this.selectedAssignees();
+    const states = this.selectedStates();
+
+    return this.workItems().filter(
+      (wi) =>
+        (types.size === 0 || types.has(wi.workItemType)) &&
+        (assignees.size === 0 || assignees.has(wi.assignedTo ?? '(Sem responsável)')) &&
+        (states.size === 0 || states.has(wi.state ?? '(Sem status)')),
+    );
+  });
 
   selectableItems = computed(() => this.eligibleItems().filter((wi) => !wi.alreadyHasTasks && wi.sizeRecognized));
 
@@ -58,15 +82,19 @@ export class WorkItemsComponent implements OnInit {
   constructor(private readonly api: ApiService) {}
 
   ngOnInit(): void {
-    this.loadSprints();
-
     this.api.getConnectionSettings().subscribe({
       next: (settings) => {
-        this.areaPathConfigured.set(!!settings.areaPath?.trim());
         this.orgUrl.set(settings.organizationUrl);
         this.project.set(settings.project);
+        this.teams.set(settings.teams);
+        if (settings.teams.length > 0) {
+          this.selectedTeamName.set(settings.teams[0].name);
+          this.loadSprints();
+        }
       },
-      error: () => this.areaPathConfigured.set(false),
+      error: () => {
+        // Sem config salva, o guard já teria redirecionado pra /config antes de chegar aqui.
+      },
     });
   }
 
@@ -74,11 +102,26 @@ export class WorkItemsComponent implements OnInit {
     return `${this.orgUrl()}/${this.project()}/_workitems/edit/${id}`;
   }
 
+  onTeamChange(name: string): void {
+    this.selectedTeamName.set(name);
+    this.sprints.set([]);
+    this.selectedIterationPath.set('');
+    this.workItems.set([]);
+    this.hasLoadedOnce.set(false);
+    this.result.set(null);
+    this.loadSprints();
+  }
+
   loadSprints(): void {
+    const team = this.selectedTeam();
+    if (!team) {
+      return;
+    }
+
     this.loadingSprints.set(true);
     this.errorMessage.set('');
 
-    this.api.getSprints().subscribe({
+    this.api.getSprints(team.name).subscribe({
       next: (sprints) => {
         this.sprints.set(sprints);
         const current = sprints.find((s) => s.isCurrent) ?? sprints[0];
@@ -113,10 +156,14 @@ export class WorkItemsComponent implements OnInit {
     this.loadingWorkItems.set(true);
     this.errorMessage.set('');
 
-    this.api.getWorkItems(iterationPath).subscribe({
+    const areaPath = this.selectedTeam()?.areaPath || null;
+
+    this.api.getWorkItems(iterationPath, areaPath).subscribe({
       next: (items) => {
         this.workItems.set(items);
-        this.selectedTypes.set(new Set(items.map((i) => i.workItemType)));
+        this.selectedTypes.set(new Set());
+        this.selectedAssignees.set(new Set());
+        this.selectedStates.set(new Set());
         this.selectedIds.set(
           new Set(items.filter((i) => !i.alreadyHasTasks && i.sizeRecognized).map((i) => i.id)),
         );
@@ -127,12 +174,6 @@ export class WorkItemsComponent implements OnInit {
         this.errorMessage.set(err?.error?.message ?? 'Erro ao carregar work items da sprint.');
       },
     });
-  }
-
-  toggleType(type: string, checked: boolean): void {
-    const types = new Set(this.selectedTypes());
-    checked ? types.add(type) : types.delete(type);
-    this.selectedTypes.set(types);
   }
 
   toggleItem(id: number, checked: boolean): void {
