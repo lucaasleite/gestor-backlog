@@ -34,6 +34,7 @@
       <table>
         <thead>
           <tr>
+            <th></th>
             <th>Título</th>
             <th>Tipo</th>
             <th>Size</th>
@@ -46,7 +47,19 @@
         <tbody>
           <tr>
             <td>
-              <a [href]="workItemUrl(it.id)" target="_blank" rel="noopener">#{{ it.id }}</a>
+              <button
+                type="button"
+                class="ghost expand-toggle"
+                (click)="toggleExpand()"
+                [attr.aria-expanded]="expanded()"
+              >
+                {{ expanded() ? '▾' : '▸' }}
+              </button>
+            </td>
+            <td>
+              <a [href]="workItemUrl(it.id)" target="_blank" rel="noopener" (click)="$event.stopPropagation()"
+                >#{{ it.id }}</a
+              >
               {{ it.title }}
             </td>
             <td>{{ it.workItemType }}</td>
@@ -57,6 +70,17 @@
             <td>
               @if (it.alreadyHasTasks) {
                 <span class="badge warning">Já possui tasks</span>
+                @if (it.sizeRecognized) {
+                  <button
+                    type="button"
+                    class="ghost"
+                    style="margin-left: 8px; padding: 3px 10px; font-size: 12px;"
+                    [disabled]="regenerating()"
+                    (click)="regenerate()"
+                  >
+                    {{ regenerating() ? 'Processando...' : 'Fechar e regerar' }}
+                  </button>
+                }
               } @else if (!it.sizeRecognized) {
                 <span class="badge warning">Tamanho não reconhecido</span>
               } @else {
@@ -64,28 +88,88 @@
               }
             </td>
           </tr>
+
+          @if (regenerateError()) {
+            <tr>
+              <td [attr.colspan]="8" style="padding: 0 10px 10px;">
+                <div class="banner error">{{ regenerateError() }}</div>
+              </td>
+            </tr>
+          }
+          @if (regenerateResult(); as r) {
+            <tr>
+              <td [attr.colspan]="8" style="padding: 0 10px 10px;">
+                <div class="banner success">
+                  {{ r.closedTasks.length }} task(s) fechada(s), {{ r.createdTasks.length }} nova(s) criada(s).
+                </div>
+              </td>
+            </tr>
+          }
+
+          @if (expanded()) {
+            <tr class="child-tasks-row">
+              <td [attr.colspan]="8">
+                @if (it.alreadyHasTasks) {
+                  @if (loadingChildTasks()) {
+                    <div class="actions-bar" style="justify-content: center; padding: 8px;">
+                      <div class="spinner" style="width: 18px; height: 18px;"></div>
+                    </div>
+                  } @else if (childTasks().length === 0) {
+                    <p class="text-dim" style="margin: 4px 0;">Nenhuma task encontrada.</p>
+                  } @else {
+                    <table class="child-tasks-table">
+                      <thead>
+                        <tr>
+                          <th>Título</th>
+                          <th>Responsável</th>
+                          <th>Estimadas</th>
+                          <th>Restantes</th>
+                          <th>Completadas</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (task of childTasks(); track task.id) {
+                          <tr>
+                            <td><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }}</td>
+                            <td>{{ task.assignedTo ?? '-' }}</td>
+                            <td>{{ task.originalEstimate ?? '-' }}</td>
+                            <td>{{ task.remainingWork ?? '-' }}</td>
+                            <td>{{ task.completedWork ?? '-' }}</td>
+                            <td>{{ task.state ?? '-' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  }
+                } @else if (it.sizeRecognized) {
+                  <table class="child-tasks-table">
+                    <thead>
+                      <tr>
+                        <th>Título (a criar)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (title of it.plannedTaskTitles; track title) {
+                        <tr>
+                          <td>{{ title }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                } @else {
+                  <p class="text-dim" style="margin: 4px 0;">
+                    Tamanho não reconhecido — não é possível prever as tasks.
+                  </p>
+                }
+              </td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>
 
     @if (!it.alreadyHasTasks && it.sizeRecognized) {
-      <div style="margin-top: 16px;">
-        <table class="child-tasks-table">
-          <thead>
-            <tr>
-              <th>Título</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (title of it.plannedTaskTitles; track title) {
-              <tr>
-                <td>{{ title }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-
       @if (generateError()) {
         <div class="banner error" style="margin-top: 12px;">{{ generateError() }}</div>
       }
@@ -94,54 +178,6 @@
         <button type="button" (click)="generate()" [disabled]="generating()">
           {{ generating() ? 'Gerando...' : 'Gerar Tasks' }}
         </button>
-      </div>
-    }
-
-    @if (it.alreadyHasTasks) {
-      @if (it.sizeRecognized) {
-        @if (regenerateError()) {
-          <div class="banner error" style="margin-top: 16px;">{{ regenerateError() }}</div>
-        }
-        <div class="actions-bar" style="margin-top: 16px;">
-          <button type="button" class="ghost" [disabled]="regenerating()" (click)="regenerate()">
-            {{ regenerating() ? 'Processando...' : 'Fechar e regerar' }}
-          </button>
-        </div>
-      }
-
-      <div style="margin-top: 16px;">
-        @if (loadingChildTasks()) {
-          <div class="actions-bar" style="justify-content: center; padding: 8px;">
-            <div class="spinner" style="width: 18px; height: 18px;"></div>
-          </div>
-        } @else if (childTasks().length === 0) {
-          <p class="text-dim">Nenhuma task encontrada.</p>
-        } @else {
-          <table class="child-tasks-table">
-            <thead>
-              <tr>
-                <th>Título</th>
-                <th>Responsável</th>
-                <th>Estimadas</th>
-                <th>Restantes</th>
-                <th>Completadas</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (task of childTasks(); track task.id) {
-                <tr>
-                  <td><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }}</td>
-                  <td>{{ task.assignedTo ?? '-' }}</td>
-                  <td>{{ task.originalEstimate ?? '-' }}</td>
-                  <td>{{ task.remainingWork ?? '-' }}</td>
-                  <td>{{ task.completedWork ?? '-' }}</td>
-                  <td>{{ task.state ?? '-' }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        }
       </div>
     }
   </section>
@@ -155,13 +191,5 @@
         <li><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }} ({{ task.hoursEstimate }}h)</li>
       }
     </ul>
-  </section>
-}
-
-@if (regenerateResult(); as r) {
-  <section class="card">
-    <div class="banner success">
-      {{ r.closedTasks.length }} task(s) fechada(s), {{ r.createdTasks.length }} nova(s) criada(s).
-    </div>
   </section>
 }

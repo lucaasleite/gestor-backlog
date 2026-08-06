@@ -19,7 +19,9 @@ export class SingleItemComponent implements OnInit {
   orgUrl = signal('');
   project = signal('');
 
+  expanded = signal(false);
   loadingChildTasks = signal(false);
+  childTasksLoaded = signal(false);
   childTasks = signal<WorkItemTask[]>([]);
 
   generating = signal(false);
@@ -58,7 +60,9 @@ export class SingleItemComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     this.item.set(null);
+    this.expanded.set(false);
     this.childTasks.set([]);
+    this.childTasksLoaded.set(false);
     this.generateResult.set(null);
     this.generateError.set('');
     this.regenerateResult.set(null);
@@ -68,9 +72,6 @@ export class SingleItemComponent implements OnInit {
       next: (item) => {
         this.item.set(item);
         this.loading.set(false);
-        if (item.alreadyHasTasks) {
-          this.loadChildTasks(item.id);
-        }
       },
       error: (err) => {
         this.loading.set(false);
@@ -79,15 +80,31 @@ export class SingleItemComponent implements OnInit {
     });
   }
 
-  private loadChildTasks(id: number): void {
+  // Mesmo padrão de expandir usado em Work Items da sprint e Tasks por Parent.
+  toggleExpand(): void {
+    this.expanded.update((e) => !e);
+
+    if (this.expanded() && this.item()?.alreadyHasTasks && !this.childTasksLoaded()) {
+      this.loadChildTasks();
+    }
+  }
+
+  private loadChildTasks(): void {
+    const item = this.item();
+    if (!item) {
+      return;
+    }
+
     this.loadingChildTasks.set(true);
-    this.api.getChildTasks(id).subscribe({
+    this.api.getChildTasks(item.id).subscribe({
       next: (tasks) => {
         this.childTasks.set(tasks);
+        this.childTasksLoaded.set(true);
         this.loadingChildTasks.set(false);
       },
       error: () => {
         this.childTasks.set([]);
+        this.childTasksLoaded.set(true);
         this.loadingChildTasks.set(false);
       },
     });
@@ -148,6 +165,9 @@ export class SingleItemComponent implements OnInit {
     this.api.getWorkItemPreview(id).subscribe({
       next: (item) => this.item.set(item),
     });
-    this.loadChildTasks(id);
+
+    this.expanded.set(true);
+    this.childTasksLoaded.set(false);
+    this.loadChildTasks();
   }
 }
