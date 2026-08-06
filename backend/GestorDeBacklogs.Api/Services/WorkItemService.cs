@@ -37,7 +37,8 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
 
         foreach (var workItem in workItems)
         {
-            var (createdResult, skippedResult) = await GenerateForItemAsync(workItem, ct);
+            var overrides = request.Overrides is not null && request.Overrides.TryGetValue(workItem.Id, out var o) ? o : null;
+            var (createdResult, skippedResult) = await GenerateForItemAsync(workItem, overrides, ct);
             if (createdResult is not null)
             {
                 created.Add(createdResult);
@@ -60,13 +61,13 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
         return BuildPreview(workItem);
     }
 
-    public async Task<GenerateTasksItemResult> GenerateTasksForItemAsync(int workItemId, CancellationToken ct = default)
+    public async Task<GenerateTasksItemResult> GenerateTasksForItemAsync(int workItemId, IReadOnlyList<TaskOverride>? tasks, CancellationToken ct = default)
     {
         var workItems = await client.GetWorkItemsByIdsAsync([workItemId], ct);
         var workItem = workItems.FirstOrDefault()
             ?? throw new InvalidOperationException("Work item não encontrado.");
 
-        var (created, skipped) = await GenerateForItemAsync(workItem, ct);
+        var (created, skipped) = await GenerateForItemAsync(workItem, tasks, ct);
         if (skipped is not null)
         {
             throw new InvalidOperationException(skipped.Reason);
@@ -75,14 +76,26 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
         return created!;
     }
 
-    private async Task<(GenerateTasksItemResult? Created, SkippedItemResult? Skipped)> GenerateForItemAsync(WorkItemDto workItem, CancellationToken ct)
+    // "overrides", quando informado, substitui o cálculo automático (TaskSizingCalculator) -
+    // permite ajustar as horas de cada task antes de criar (ex: tasks menores que o tamanho padrão da US).
+    private async Task<(GenerateTasksItemResult? Created, SkippedItemResult? Skipped)> GenerateForItemAsync(
+        WorkItemDto workItem, IReadOnlyList<TaskOverride>? overrides, CancellationToken ct)
     {
         if (workItem.AlreadyHasTasks)
         {
             return (null, new SkippedItemResult(workItem.Id, workItem.Title, "Já possui tasks"));
         }
 
-        if (workItem.EffortHours is not { } effort || !TaskSizingCalculator.TryCalculate(workItem.Title, effort, out var tasksToCreate))
+        IReadOnlyList<TaskToCreate> tasksToCreate;
+        if (overrides is { Count: > 0 })
+        {
+            tasksToCreate = overrides.Select(o => new TaskToCreate(o.Title, o.Hours)).ToList();
+        }
+        else if (workItem.EffortHours is { } effort && TaskSizingCalculator.TryCalculate(workItem.Title, effort, out var calculated))
+        {
+            tasksToCreate = calculated;
+        }
+        else
         {
             return (null, new SkippedItemResult(workItem.Id, workItem.Title, "Tamanho não reconhecido"));
         }
@@ -133,7 +146,7 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
         foreach (var task in existingTasks)
         {
             await client.CloseWorkItemAsync(task.Id, ct);
-            closedTasks.Add(new CreatedTaskInfo(task.Id, task.Title, (int)(task.OriginalEstimate ?? 0)));
+            closedTasks.Add(new CreatedTaskInfo(task.Id, task.Title, task.OriginalEstimate ?? 0));
         }
 
         var createdTasks = new List<CreatedTaskInfo>();
@@ -184,8 +197,8 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
     private static WorkItemPreviewDto BuildPreview(WorkItemDto workItem)
     {
         var sizeRecognized = workItem.EffortHours is { } effort && TaskSizingCalculator.TryCalculate(workItem.Title, effort, out _);
-        var plannedTitles = !workItem.AlreadyHasTasks && workItem.EffortHours is { } e && TaskSizingCalculator.TryCalculate(workItem.Title, e, out var tasks)
-            ? tasks.Select(t => t.Title).ToList()
+        var plannedTasks = !workItem.AlreadyHasTasks && workItem.EffortHours is { } e && TaskSizingCalculator.TryCalculate(workItem.Title, e, out var tasks)
+            ? tasks.Select(t => new PlannedTaskDto(t.Title, t.Hours)).ToList()
             : [];
 
         return new WorkItemPreviewDto(
@@ -197,7 +210,7 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
             workItem.AssignedTo,
             workItem.AlreadyHasTasks,
             sizeRecognized,
-            plannedTitles,
+            plannedTasks,
             workItem.State);
     }
 }

@@ -66,16 +66,21 @@
   <div class="banner error">{{ errorMessage() }}</div>
 }
 
-<section class="card">
-  @if (loadingWorkItems()) {
+@if (loadingWorkItems()) {
+  <section class="card">
     <div style="display: flex; justify-content: center; padding: 24px;">
       <div class="spinner"></div>
     </div>
-  } @else if (!hasLoadedOnce()) {
+  </section>
+} @else if (!hasLoadedOnce()) {
+  <section class="card">
     <p class="text-dim" style="text-align: center; padding: 24px;">
       Escolha a sprint e clique em "Carregar Work Items" para buscar os itens.
     </p>
-  } @else {
+  </section>
+} @else {
+  <section class="card">
+    <h2>Demandas sem task ({{ itemsWithoutTasks().length }})</h2>
     <div class="table-wrap">
       <table>
         <thead>
@@ -98,13 +103,13 @@
           </tr>
         </thead>
         <tbody>
-          @for (item of eligibleItems(); track item.id) {
-            <tr [class.faded]="item.alreadyHasTasks || !item.sizeRecognized">
+          @for (item of itemsWithoutTasks(); track item.id) {
+            <tr [class.faded]="!item.sizeRecognized">
               <td>
                 <input
                   type="checkbox"
                   [checked]="selectedIds().has(item.id)"
-                  [disabled]="item.alreadyHasTasks || !item.sizeRecognized"
+                  [disabled]="!item.sizeRecognized"
                   (change)="toggleItem(item.id, $any($event.target).checked)"
                 />
               </td>
@@ -112,7 +117,7 @@
                 <button
                   type="button"
                   class="ghost expand-toggle"
-                  (click)="toggleExpand(item.id)"
+                  (click)="toggleExpand(item)"
                   [attr.aria-expanded]="expandedIds().has(item.id)"
                 >
                   {{ expandedIds().has(item.id) ? '▾' : '▸' }}
@@ -128,73 +133,42 @@
               <td>{{ item.assignedTo ?? '-' }}</td>
               <td>{{ item.state ?? '-' }}</td>
               <td>
-                @if (item.alreadyHasTasks) {
-                  <span class="badge warning">Já possui tasks</span>
-                  @if (item.sizeRecognized) {
-                    <button
-                      type="button"
-                      class="ghost"
-                      style="margin-left: 8px; padding: 3px 10px; font-size: 12px;"
-                      [disabled]="regeneratingIds().has(item.id)"
-                      (click)="regenerate(item)"
-                    >
-                      {{ regeneratingIds().has(item.id) ? 'Processando...' : 'Fechar e regerar' }}
-                    </button>
-                  }
-                } @else if (!item.sizeRecognized) {
+                @if (!item.sizeRecognized) {
                   <span class="badge warning">Tamanho não reconhecido</span>
                 } @else {
-                  <span class="badge success">{{ item.plannedTaskTitles.length }} task(s) a criar</span>
+                  <span class="badge success">{{ item.plannedTasks.length }} task(s) a criar</span>
                 }
               </td>
             </tr>
-            @if (regenerateErrors().get(item.id); as regenError) {
-              <tr>
-                <td [attr.colspan]="8" style="padding: 0 10px 10px;">
-                  <div class="banner error">{{ regenError }}</div>
-                </td>
-              </tr>
-            }
-            @if (regenerateResults().get(item.id); as regenResult) {
-              <tr>
-                <td [attr.colspan]="8" style="padding: 0 10px 10px;">
-                  <div class="banner success">
-                    {{ regenResult.closedTasks.length }} task(s) fechada(s), {{ regenResult.createdTasks.length }}
-                    nova(s) criada(s).
-                  </div>
-                </td>
-              </tr>
-            }
             @if (expandedIds().has(item.id)) {
               <tr class="child-tasks-row">
                 <td [attr.colspan]="8">
-                  @if (loadingTasksFor().has(item.id)) {
-                    <div class="actions-bar" style="justify-content: center; padding: 8px;">
-                      <div class="spinner" style="width: 18px; height: 18px;"></div>
-                    </div>
-                  } @else if ((childTasksByParent().get(item.id) ?? []).length === 0) {
-                    <p class="text-dim" style="margin: 4px 0;">Nenhuma task encontrada.</p>
+                  @if (!item.sizeRecognized) {
+                    <p class="text-dim" style="margin: 4px 0;">
+                      Tamanho não reconhecido — não é possível prever as tasks.
+                    </p>
                   } @else {
                     <table class="child-tasks-table">
                       <thead>
                         <tr>
-                          <th>Título</th>
-                          <th>Responsável</th>
-                          <th>Estimadas</th>
-                          <th>Restantes</th>
-                          <th>Completadas</th>
-                          <th>Status</th>
+                          <th>Título (a criar)</th>
+                          <th style="width: 120px;">Horas</th>
                         </tr>
                       </thead>
                       <tbody>
-                        @for (task of childTasksByParent().get(item.id); track task.id) {
+                        @for (task of plannedTasksFor(item.id); track $index) {
                           <tr>
-                            <td><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }}</td>
-                            <td>{{ task.assignedTo ?? '-' }}</td>
-                            <td>{{ task.originalEstimate ?? '-' }}</td>
-                            <td>{{ task.remainingWork ?? '-' }}</td>
-                            <td>{{ task.completedWork ?? '-' }}</td>
-                            <td>{{ task.state ?? '-' }}</td>
+                            <td>{{ task.title }}</td>
+                            <td>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                class="hours-input"
+                                [ngModel]="task.hours"
+                                (ngModelChange)="updateTaskHours(item.id, $index, $any($event))"
+                              />
+                            </td>
                           </tr>
                         }
                       </tbody>
@@ -207,14 +181,133 @@
         </tbody>
       </table>
     </div>
-  }
 
-  <div class="actions-bar" style="margin-top: 16px;">
-    <button type="button" (click)="generate()" [disabled]="generating() || selectedIds().size === 0">
-      {{ generating() ? 'Gerando...' : 'Gerar Tasks (' + selectedIds().size + ')' }}
-    </button>
-  </div>
-</section>
+    <div class="actions-bar" style="margin-top: 16px;">
+      <button type="button" (click)="generate()" [disabled]="generating() || selectedIds().size === 0">
+        {{ generating() ? 'Gerando...' : 'Gerar Tasks (' + selectedIds().size + ')' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Demandas com task ({{ itemsWithTasks().length }})</h2>
+    @if (itemsWithTasks().length === 0) {
+      <p class="text-dim">Nenhuma demanda já tem task criada.</p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Título</th>
+              <th>Tipo</th>
+              <th>Size</th>
+              <th>Effort</th>
+              <th>Responsável</th>
+              <th>Status</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of itemsWithTasks(); track item.id) {
+              <tr>
+                <td></td>
+                <td>
+                  <button
+                    type="button"
+                    class="ghost expand-toggle"
+                    (click)="toggleExpand(item)"
+                    [attr.aria-expanded]="expandedIds().has(item.id)"
+                  >
+                    {{ expandedIds().has(item.id) ? '▾' : '▸' }}
+                  </button>
+                  <a [href]="workItemUrl(item.id)" target="_blank" rel="noopener" (click)="$event.stopPropagation()"
+                    >#{{ item.id }}</a
+                  >
+                  {{ item.title }}
+                </td>
+                <td>{{ item.workItemType }}</td>
+                <td>{{ item.sizeLabel ?? '-' }}</td>
+                <td>{{ item.effortHours ?? '-' }}</td>
+                <td>{{ item.assignedTo ?? '-' }}</td>
+                <td>{{ item.state ?? '-' }}</td>
+                <td>
+                  <span class="badge warning">Já possui tasks</span>
+                  @if (item.sizeRecognized) {
+                    <button
+                      type="button"
+                      class="ghost"
+                      style="margin-left: 8px; padding: 3px 10px; font-size: 12px;"
+                      [disabled]="regeneratingIds().has(item.id)"
+                      (click)="regenerate(item)"
+                    >
+                      {{ regeneratingIds().has(item.id) ? 'Processando...' : 'Fechar e regerar' }}
+                    </button>
+                  }
+                </td>
+              </tr>
+              @if (regenerateErrors().get(item.id); as regenError) {
+                <tr>
+                  <td [attr.colspan]="8" style="padding: 0 10px 10px;">
+                    <div class="banner error">{{ regenError }}</div>
+                  </td>
+                </tr>
+              }
+              @if (regenerateResults().get(item.id); as regenResult) {
+                <tr>
+                  <td [attr.colspan]="8" style="padding: 0 10px 10px;">
+                    <div class="banner success">
+                      {{ regenResult.closedTasks.length }} task(s) fechada(s), {{ regenResult.createdTasks.length }}
+                      nova(s) criada(s).
+                    </div>
+                  </td>
+                </tr>
+              }
+              @if (expandedIds().has(item.id)) {
+                <tr class="child-tasks-row">
+                  <td [attr.colspan]="8">
+                    @if (loadingTasksFor().has(item.id)) {
+                      <div class="actions-bar" style="justify-content: center; padding: 8px;">
+                        <div class="spinner" style="width: 18px; height: 18px;"></div>
+                      </div>
+                    } @else if ((childTasksByParent().get(item.id) ?? []).length === 0) {
+                      <p class="text-dim" style="margin: 4px 0;">Nenhuma task encontrada.</p>
+                    } @else {
+                      <table class="child-tasks-table">
+                        <thead>
+                          <tr>
+                            <th>Título</th>
+                            <th>Responsável</th>
+                            <th>Estimadas</th>
+                            <th>Restantes</th>
+                            <th>Completadas</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (task of childTasksByParent().get(item.id); track task.id) {
+                            <tr>
+                              <td><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }}</td>
+                              <td>{{ task.assignedTo ?? '-' }}</td>
+                              <td>{{ task.originalEstimate ?? '-' }}</td>
+                              <td>{{ task.remainingWork ?? '-' }}</td>
+                              <td>{{ task.completedWork ?? '-' }}</td>
+                              <td>{{ task.state ?? '-' }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}
 
 @if (result(); as r) {
   <section class="card">

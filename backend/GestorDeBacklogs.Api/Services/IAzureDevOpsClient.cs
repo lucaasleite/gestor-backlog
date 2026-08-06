@@ -17,7 +17,7 @@ public interface IAzureDevOpsClient
 
     Task<Dictionary<string, JsonElement>> GetWorkItemRawFieldsAsync(int id, CancellationToken ct = default);
 
-    Task<int> CreateTaskAsync(WorkItemDto parent, string title, int hours, string iterationPath, CancellationToken ct = default);
+    Task<int> CreateTaskAsync(WorkItemDto parent, string title, double hours, string iterationPath, CancellationToken ct = default);
 
     Task CloseWorkItemAsync(int id, CancellationToken ct = default);
 }

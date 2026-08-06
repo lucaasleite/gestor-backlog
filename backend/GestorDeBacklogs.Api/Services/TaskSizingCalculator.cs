@@ -1,6 +1,6 @@
 namespace GestorDeBacklogs.Api.Services;
 
-public record TaskToCreate(string Title, int Hours);
+public record TaskToCreate(string Title, double Hours);
 
 public static class TaskSizingCalculator
 {

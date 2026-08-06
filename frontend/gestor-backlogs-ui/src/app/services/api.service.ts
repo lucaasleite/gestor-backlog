@@ -11,6 +11,7 @@ import {
   Iteration,
   ParentUserStory,
   RegenerateTasksResult,
+  TaskOverride,
   WorkItemPreview,
   WorkItemTask,
 } from '../models/api-models';
@@ -69,8 +70,8 @@ export class ApiService {
     return this.http.get<WorkItemPreview>(`${this.baseUrl}/workitems/${id}/preview`);
   }
 
-  generateTaskForItem(id: number): Observable<GenerateTasksItemResult> {
-    return this.http.post<GenerateTasksItemResult>(`${this.baseUrl}/workitems/${id}/generate-tasks`, {});
+  generateTaskForItem(id: number, tasks?: TaskOverride[]): Observable<GenerateTasksItemResult> {
+    return this.http.post<GenerateTasksItemResult>(`${this.baseUrl}/workitems/${id}/generate-tasks`, { tasks });
   }
 
   closeWorkItem(id: number): Observable<void> {

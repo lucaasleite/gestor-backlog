@@ -36,8 +36,8 @@ public static class WorkItemsEndpoints
         group.MapGet("/workitems/{id:int}/preview", async (int id, IWorkItemService service) =>
             Results.Ok(await service.GetWorkItemPreviewAsync(id)));
 
-        group.MapPost("/workitems/{id:int}/generate-tasks", async (int id, IWorkItemService service) =>
-            Results.Ok(await service.GenerateTasksForItemAsync(id)));
+        group.MapPost("/workitems/{id:int}/generate-tasks", async (int id, GenerateTaskForItemRequest? request, IWorkItemService service) =>
+            Results.Ok(await service.GenerateTasksForItemAsync(id, request?.Tasks)));
 
         group.MapGet("/parent/{parentId:int}/user-stories", async (int parentId, IWorkItemService service) =>
             Results.Ok(await service.GetChildUserStoriesAsync(parentId)));

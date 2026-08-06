@@ -6,7 +6,9 @@ import {
   GenerateTasksItemResult,
   GenerateTasksResult,
   Iteration,
+  PlannedTask,
   RegenerateTasksResult,
+  TaskOverride,
   TeamConfig,
   WorkItemPreview,
   WorkItemTask,
@@ -44,6 +46,10 @@ export class WorkItemsComponent implements OnInit {
   loadingTasksFor = signal<Set<number>>(new Set());
   childTasksByParent = signal<Map<number, WorkItemTask[]>>(new Map());
 
+  // Horas editáveis da prévia de cada item (clonadas de plannedTasks ao carregar; o usuário pode ajustar
+  // antes de gerar - útil pra casos onde a task real é bem menor que o tamanho padrão da US).
+  taskOverridesByItem = signal<Map<number, PlannedTask[]>>(new Map());
+
   regeneratingIds = signal<Set<number>>(new Set());
   regenerateResults = signal<Map<number, RegenerateTasksResult>>(new Map());
   regenerateErrors = signal<Map<number, string>>(new Map());
@@ -70,7 +76,10 @@ export class WorkItemsComponent implements OnInit {
     );
   });
 
-  selectableItems = computed(() => this.eligibleItems().filter((wi) => !wi.alreadyHasTasks && wi.sizeRecognized));
+  itemsWithoutTasks = computed(() => this.eligibleItems().filter((wi) => !wi.alreadyHasTasks));
+  itemsWithTasks = computed(() => this.eligibleItems().filter((wi) => wi.alreadyHasTasks));
+
+  selectableItems = computed(() => this.itemsWithoutTasks().filter((wi) => wi.sizeRecognized));
 
   selectableCount = computed(() => this.selectableItems().length);
 
@@ -167,6 +176,13 @@ export class WorkItemsComponent implements OnInit {
         this.selectedIds.set(
           new Set(items.filter((i) => !i.alreadyHasTasks && i.sizeRecognized).map((i) => i.id)),
         );
+
+        const overrides = new Map<number, PlannedTask[]>();
+        for (const item of items) {
+          overrides.set(item.id, item.plannedTasks.map((t) => ({ ...t })));
+        }
+        this.taskOverridesByItem.set(overrides);
+
         this.loadingWorkItems.set(false);
       },
       error: (err) => {
@@ -174,6 +190,20 @@ export class WorkItemsComponent implements OnInit {
         this.errorMessage.set(err?.error?.message ?? 'Erro ao carregar work items da sprint.');
       },
     });
+  }
+
+  plannedTasksFor(itemId: number): PlannedTask[] {
+    return this.taskOverridesByItem().get(itemId) ?? [];
+  }
+
+  updateTaskHours(itemId: number, index: number, hours: number): void {
+    const overrides = new Map(this.taskOverridesByItem());
+    const tasks = [...(overrides.get(itemId) ?? [])];
+    if (tasks[index]) {
+      tasks[index] = { ...tasks[index], hours };
+      overrides.set(itemId, tasks);
+      this.taskOverridesByItem.set(overrides);
+    }
   }
 
   toggleItem(id: number, checked: boolean): void {
@@ -190,19 +220,19 @@ export class WorkItemsComponent implements OnInit {
     this.selectedIds.set(ids);
   }
 
-  toggleExpand(id: number): void {
+  toggleExpand(item: WorkItemPreview): void {
     const expanded = new Set(this.expandedIds());
-    if (expanded.has(id)) {
-      expanded.delete(id);
+    if (expanded.has(item.id)) {
+      expanded.delete(item.id);
       this.expandedIds.set(expanded);
       return;
     }
 
-    expanded.add(id);
+    expanded.add(item.id);
     this.expandedIds.set(expanded);
 
-    if (!this.childTasksByParent().has(id)) {
-      this.loadChildTasks(id);
+    if (item.alreadyHasTasks && !this.childTasksByParent().has(item.id)) {
+      this.loadChildTasks(item.id);
     }
   }
 
@@ -285,7 +315,12 @@ export class WorkItemsComponent implements OnInit {
     this.generating.set(true);
     this.errorMessage.set('');
 
-    this.api.generateTasks({ iterationPath: this.selectedIterationPath(), workItemIds: ids }).subscribe({
+    const overrides: Record<number, TaskOverride[]> = {};
+    for (const id of ids) {
+      overrides[id] = this.plannedTasksFor(id);
+    }
+
+    this.api.generateTasks({ iterationPath: this.selectedIterationPath(), workItemIds: ids, overrides }).subscribe({
       next: (result) => {
         this.result.set(result);
         this.generating.set(false);

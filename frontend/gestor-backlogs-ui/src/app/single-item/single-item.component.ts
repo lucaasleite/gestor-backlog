@@ -1,7 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../services/api.service';
-import { GenerateTasksItemResult, RegenerateTasksResult, WorkItemPreview, WorkItemTask } from '../models/api-models';
+import {
+  GenerateTasksItemResult,
+  PlannedTask,
+  RegenerateTasksResult,
+  WorkItemPreview,
+  WorkItemTask,
+} from '../models/api-models';
 
 @Component({
   selector: 'app-single-item',
@@ -19,10 +25,12 @@ export class SingleItemComponent implements OnInit {
   orgUrl = signal('');
   project = signal('');
 
-  expanded = signal(false);
   loadingChildTasks = signal(false);
-  childTasksLoaded = signal(false);
   childTasks = signal<WorkItemTask[]>([]);
+  taskOverrides = signal<PlannedTask[]>([]);
+
+  closingTaskIds = signal<Set<number>>(new Set());
+  closeTaskErrors = signal<Map<number, string>>(new Map());
 
   generating = signal(false);
   generateError = signal('');
@@ -60,9 +68,9 @@ export class SingleItemComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     this.item.set(null);
-    this.expanded.set(false);
     this.childTasks.set([]);
-    this.childTasksLoaded.set(false);
+    this.taskOverrides.set([]);
+    this.closeTaskErrors.set(new Map());
     this.generateResult.set(null);
     this.generateError.set('');
     this.regenerateResult.set(null);
@@ -71,7 +79,12 @@ export class SingleItemComponent implements OnInit {
     this.api.getWorkItemPreview(id).subscribe({
       next: (item) => {
         this.item.set(item);
+        this.taskOverrides.set(item.plannedTasks.map((t) => ({ ...t })));
         this.loading.set(false);
+
+        if (item.alreadyHasTasks) {
+          this.loadChildTasks();
+        }
       },
       error: (err) => {
         this.loading.set(false);
@@ -80,12 +93,11 @@ export class SingleItemComponent implements OnInit {
     });
   }
 
-  // Mesmo padrão de expandir usado em Work Items da sprint e Tasks por Parent.
-  toggleExpand(): void {
-    this.expanded.update((e) => !e);
-
-    if (this.expanded() && this.item()?.alreadyHasTasks && !this.childTasksLoaded()) {
-      this.loadChildTasks();
+  updateTaskHours(index: number, hours: number): void {
+    const tasks = [...this.taskOverrides()];
+    if (tasks[index]) {
+      tasks[index] = { ...tasks[index], hours };
+      this.taskOverrides.set(tasks);
     }
   }
 
@@ -99,15 +111,47 @@ export class SingleItemComponent implements OnInit {
     this.api.getChildTasks(item.id).subscribe({
       next: (tasks) => {
         this.childTasks.set(tasks);
-        this.childTasksLoaded.set(true);
         this.loadingChildTasks.set(false);
       },
       error: () => {
         this.childTasks.set([]);
-        this.childTasksLoaded.set(true);
         this.loadingChildTasks.set(false);
       },
     });
+  }
+
+  closeTask(task: WorkItemTask): void {
+    const confirmed = window.confirm(`Isso vai fechar a task "${task.title}" (#${task.id}). Continuar?`);
+    if (!confirmed) {
+      return;
+    }
+
+    const closing = new Set(this.closingTaskIds());
+    closing.add(task.id);
+    this.closingTaskIds.set(closing);
+
+    const errors = new Map(this.closeTaskErrors());
+    errors.delete(task.id);
+    this.closeTaskErrors.set(errors);
+
+    this.api.closeWorkItem(task.id).subscribe({
+      next: () => {
+        this.finishClosingTask(task.id);
+        this.loadChildTasks();
+      },
+      error: (err) => {
+        this.finishClosingTask(task.id);
+        const errs = new Map(this.closeTaskErrors());
+        errs.set(task.id, err?.error?.message ?? 'Erro ao fechar a task.');
+        this.closeTaskErrors.set(errs);
+      },
+    });
+  }
+
+  private finishClosingTask(id: number): void {
+    const closing = new Set(this.closingTaskIds());
+    closing.delete(id);
+    this.closingTaskIds.set(closing);
   }
 
   generate(): void {
@@ -119,7 +163,7 @@ export class SingleItemComponent implements OnInit {
     this.generating.set(true);
     this.generateError.set('');
 
-    this.api.generateTaskForItem(item.id).subscribe({
+    this.api.generateTaskForItem(item.id, this.taskOverrides()).subscribe({
       next: (result) => {
         this.generating.set(false);
         this.generateResult.set(result);
@@ -163,11 +207,12 @@ export class SingleItemComponent implements OnInit {
 
   private refreshAfterChange(id: number): void {
     this.api.getWorkItemPreview(id).subscribe({
-      next: (item) => this.item.set(item),
+      next: (item) => {
+        this.item.set(item);
+        this.taskOverrides.set(item.plannedTasks.map((t) => ({ ...t })));
+      },
     });
 
-    this.expanded.set(true);
-    this.childTasksLoaded.set(false);
     this.loadChildTasks();
   }
 }

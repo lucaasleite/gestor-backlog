@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, Signal, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../services/api.service';
 import { ConnectionSettings, TeamConfig } from '../models/api-models';
+import { Theme, ThemeService } from '../services/theme.service';
 
 @Component({
   selector: 'app-config',
@@ -23,10 +24,19 @@ export class ConfigComponent implements OnInit {
   status = signal<'idle' | 'testing' | 'success' | 'error'>('idle');
   statusMessage = signal('');
 
+  theme: Signal<Theme>;
+
   constructor(
     private readonly api: ApiService,
     private readonly router: Router,
-  ) {}
+    private readonly themeService: ThemeService,
+  ) {
+    this.theme = this.themeService.theme;
+  }
+
+  setTheme(value: Theme): void {
+    this.themeService.setTheme(value);
+  }
 
   ngOnInit(): void {
     this.api.getConnectionSettings().subscribe({

@@ -25,6 +25,11 @@ export interface Iteration {
   finishDate: string | null;
 }
 
+export interface PlannedTask {
+  title: string;
+  hours: number;
+}
+
 export interface WorkItemPreview {
   id: number;
   title: string;
@@ -34,7 +39,7 @@ export interface WorkItemPreview {
   assignedTo: string | null;
   alreadyHasTasks: boolean;
   sizeRecognized: boolean;
-  plannedTaskTitles: string[];
+  plannedTasks: PlannedTask[];
   state: string | null;
 }
 
@@ -48,9 +53,15 @@ export interface WorkItemTask {
   state: string | null;
 }
 
+export interface TaskOverride {
+  title: string;
+  hours: number;
+}
+
 export interface GenerateTasksRequest {
   iterationPath: string;
   workItemIds: number[];
+  overrides?: Record<number, TaskOverride[]>;
 }
 
 export interface CreatedTaskInfo {

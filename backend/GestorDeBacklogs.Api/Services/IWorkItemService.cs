@@ -18,5 +18,5 @@ public interface IWorkItemService
 
     Task<WorkItemPreviewDto> GetWorkItemPreviewAsync(int workItemId, CancellationToken ct = default);
 
-    Task<GenerateTasksItemResult> GenerateTasksForItemAsync(int workItemId, CancellationToken ct = default);
+    Task<GenerateTasksItemResult> GenerateTasksForItemAsync(int workItemId, IReadOnlyList<TaskOverride>? tasks, CancellationToken ct = default);
 }

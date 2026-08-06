@@ -117,7 +117,7 @@ public class MockAzureDevOpsClient : IAzureDevOpsClient
     public Task<Dictionary<string, JsonElement>> GetWorkItemRawFieldsAsync(int id, CancellationToken ct = default) =>
         Task.FromResult(new Dictionary<string, JsonElement>());
 
-    public Task<int> CreateTaskAsync(WorkItemDto parent, string title, int hours, string iterationPath, CancellationToken ct = default)
+    public Task<int> CreateTaskAsync(WorkItemDto parent, string title, double hours, string iterationPath, CancellationToken ct = default)
     {
         var id = Interlocked.Increment(ref _nextId);
         var task = Build(id, title, "Task", null, null, null, parent.AssignedTo, iterationPath, parent.AreaPath, originalEstimate: hours, remainingWork: hours, completedWork: 0);

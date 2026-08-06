@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using GestorDeBacklogs.Api.Config;
 using GestorDeBacklogs.Api.Models;
 using Microsoft.Extensions.Options;
@@ -100,7 +101,9 @@ public class AzureDevOpsClient(
         var result = new List<WorkItemDto>();
         foreach (var chunk in ids.Chunk(WorkItemsBatchSize))
         {
-            using var content = JsonContent(new { ids = chunk, expand = "relations" });
+            // A API workitemsbatch exige a propriedade "$expand" (não "expand") pra incluir relations
+            // na resposta; sem isso ela ignora o campo silenciosamente e AlreadyHasTasks nunca é detectado.
+            using var content = JsonContent(new WorkItemsBatchRequestBody(chunk, "relations"));
             using var response = await client.PostAsync(url, content, ct);
             await EnsureSuccessAsync(response, ct);
 
@@ -157,7 +160,7 @@ public class AzureDevOpsClient(
             .ToDictionary(p => p.Name, p => p.Value.Clone());
     }
 
-    public async Task<int> CreateTaskAsync(WorkItemDto parent, string title, int hours, string iterationPath, CancellationToken ct = default)
+    public async Task<int> CreateTaskAsync(WorkItemDto parent, string title, double hours, string iterationPath, CancellationToken ct = default)
     {
         var (client, conn) = GetConfiguredClient();
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/$Task?api-version={_settings.ApiVersion}";
@@ -315,4 +318,8 @@ public class AzureDevOpsClient(
         var body = await response.Content.ReadAsStringAsync(ct);
         throw new HttpRequestException($"Azure DevOps API retornou {(int)response.StatusCode} {response.StatusCode}: {body}");
     }
+
+    private record WorkItemsBatchRequestBody(
+        [property: JsonPropertyName("ids")] int[] Ids,
+        [property: JsonPropertyName("$expand")] string Expand);
 }

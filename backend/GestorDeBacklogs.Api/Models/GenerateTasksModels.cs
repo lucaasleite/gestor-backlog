@@ -1,10 +1,17 @@
 namespace GestorDeBacklogs.Api.Models;
 
-public record GenerateTasksRequest(string IterationPath, IReadOnlyList<int> WorkItemIds);
+public record TaskOverride(string Title, double Hours);
+
+public record GenerateTasksRequest(
+    string IterationPath,
+    IReadOnlyList<int> WorkItemIds,
+    IReadOnlyDictionary<int, IReadOnlyList<TaskOverride>>? Overrides = null);
+
+public record GenerateTaskForItemRequest(IReadOnlyList<TaskOverride>? Tasks = null);
 
 public record GenerateTasksFromParentRequest(IReadOnlyList<int> UserStoryIds, IReadOnlyList<string> IterationPaths);
 
-public record CreatedTaskInfo(int Id, string Title, int HoursEstimate);
+public record CreatedTaskInfo(int Id, string Title, double HoursEstimate);
 
 public record GenerateTasksItemResult(int ParentId, string ParentTitle, IReadOnlyList<CreatedTaskInfo> CreatedTasks);
 

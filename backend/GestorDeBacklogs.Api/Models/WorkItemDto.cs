@@ -16,6 +16,8 @@ public record WorkItemDto(
     double? CompletedWork = null,
     string? State = null);
 
+public record PlannedTaskDto(string Title, double Hours);
+
 public record WorkItemPreviewDto(
     int Id,
     string Title,
@@ -25,7 +27,7 @@ public record WorkItemPreviewDto(
     string? AssignedTo,
     bool AlreadyHasTasks,
     bool SizeRecognized,
-    IReadOnlyList<string> PlannedTaskTitles,
+    IReadOnlyList<PlannedTaskDto> PlannedTasks,
     string? State);
 
 public record ParentUserStoryDto(int Id, string Title, string? AssignedTo, string? SizeLabel, int? EffortHours, bool AlreadyHasTasks);

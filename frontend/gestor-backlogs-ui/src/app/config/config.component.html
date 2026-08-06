@@ -78,3 +78,25 @@
     </div>
   </div>
 </section>
+
+<section class="card" style="max-width: 760px;">
+  <div class="field">
+    <label>Tema</label>
+    <div class="actions-bar" style="margin-top: 4px;">
+      <button
+        type="button"
+        [class.ghost]="theme() !== 'light'"
+        (click)="setTheme('light')"
+      >
+        Claro
+      </button>
+      <button
+        type="button"
+        [class.ghost]="theme() !== 'dark'"
+        (click)="setTheme('dark')"
+      >
+        Escuro
+      </button>
+    </div>
+  </div>
+</section>
