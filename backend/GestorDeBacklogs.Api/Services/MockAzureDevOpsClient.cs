@@ -36,33 +36,33 @@ public class MockAzureDevOpsClient : IAzureDevOpsClient
         [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 121, 122, 123, 201, 202];
 
     // Tags usadas pra alimentar o dashboard de "Planejado vs Fora da Sprint" em MOCK_DATA=true:
-    // itens com a tag "Planejado - Sprint" contam como planejado; os demais (104, 111, 123, 202) viram Fora da Sprint.
+    // itens com a tag "Planejado - Sprint." contam como planejado; os demais (104, 111, 123, 202) viram Fora da Sprint.
     private static readonly ConcurrentDictionary<int, WorkItemDto> Items = new(
     [
         // Sprint 23 — usada só pra dar histórico à tendência do dashboard.
-        KeyValue(Build(121, "Como usuário, quero exportar dados em CSV", "Product Backlog Item", "M", 8, "Planejado - Sprint", "ana@empresa.com", @"GestorBacklogs\Sprint 23", AreaPlataformaDevOps, state: "Closed")),
-        KeyValue(Build(122, "Corrigir timeout na integração com SSO", "Bug", "P", 4, "Planejado - Sprint", "bruno@empresa.com", @"GestorBacklogs\Sprint 23", AreaPlataformaDevOps, state: "Resolved")),
+        KeyValue(Build(121, "Como usuário, quero exportar dados em CSV", "Product Backlog Item", "M", 8, "Planejado - Sprint.", "ana@empresa.com", @"GestorBacklogs\Sprint 23", AreaPlataformaDevOps, state: "Closed")),
+        KeyValue(Build(122, "Corrigir timeout na integração com SSO", "Bug", "P", 4, "Planejado - Sprint.", "bruno@empresa.com", @"GestorBacklogs\Sprint 23", AreaPlataformaDevOps, state: "Resolved")),
         // Sem a tag de planejamento — chegou fora do planning.
         KeyValue(Build(123, "Acesso emergencial a produção", "Requisição", null, null, "#PP", "carla@empresa.com", @"GestorBacklogs\Sprint 23", AreaSre, state: "Resolved")),
         // Sprint 24 — Plataforma e DevOps
-        KeyValue(Build(101, "Como usuário, quero fazer login com SSO", "Product Backlog Item", "M", 8, "Planejado - Sprint", "ana@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, state: "Active")),
-        KeyValue(Build(102, "Como usuário, quero recuperar minha senha", "Product Backlog Item", "P", 4, "Planejado - Sprint", "bruno@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, alreadyHasTasks: true, state: "Resolved")),
-        KeyValue(Build(103, "Como admin, quero exportar relatório de backlog", "Product Backlog Item", "G", 16, "Planejado - Sprint", "carla@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, state: "Proposed")),
+        KeyValue(Build(101, "Como usuário, quero fazer login com SSO", "Product Backlog Item", "M", 8, "Planejado - Sprint.", "ana@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, state: "Active")),
+        KeyValue(Build(102, "Como usuário, quero recuperar minha senha", "Product Backlog Item", "P", 4, "Planejado - Sprint.", "bruno@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, alreadyHasTasks: true, state: "Resolved")),
+        KeyValue(Build(103, "Como admin, quero exportar relatório de backlog", "Product Backlog Item", "G", 16, "Planejado - Sprint.", "carla@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, state: "Proposed")),
         // Sem tamanho no campo — deve ser resolvido pela tag #GG. Sem a tag de planejamento — fora da sprint.
         KeyValue(Build(111, "Como usuário, quero gerenciar tags favoritas", "Product Backlog Item", null, null, "Prioridade Alta; #GG", "diego@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, state: "Active")),
         // Sprint 24 — SRE
         // Sem a tag de planejamento e sem responsável — fora da sprint.
         KeyValue(Build(104, "Corrigir erro de arredondamento no cálculo de estimativa", "Bug", "M", 8, null, null, @"GestorBacklogs\Sprint 24", AreaSre, state: "Resolved")),
-        KeyValue(Build(105, "Como usuário, quero filtrar itens por responsável", "Product Backlog Item", "GG", 24, "Planejado - Sprint", "ana@empresa.com", @"GestorBacklogs\Sprint 24", AreaSre, state: "Resolved")),
+        KeyValue(Build(105, "Como usuário, quero filtrar itens por responsável", "Product Backlog Item", "GG", 24, "Planejado - Sprint.", "ana@empresa.com", @"GestorBacklogs\Sprint 24", AreaSre, state: "Resolved")),
         // Sem tamanho no campo — deve ser resolvido pela tag #M.
-        KeyValue(Build(106, "Como usuário, quero ver o histórico de alterações", "Product Backlog Item", null, null, "#M; Planejado - Sprint", "bruno@empresa.com", @"GestorBacklogs\Sprint 24", AreaSre, state: "Resolved")),
+        KeyValue(Build(106, "Como usuário, quero ver o histórico de alterações", "Product Backlog Item", null, null, "#M; Planejado - Sprint.", "bruno@empresa.com", @"GestorBacklogs\Sprint 24", AreaSre, state: "Resolved")),
         // Tipos que a tela não deve trazer.
         KeyValue(Build(107, "Reunião de alinhamento com o PO", "Ação de Gestão", null, null, null, "ana@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps)),
         KeyValue(Build(108, "Notificações por e-mail", "Feature", null, null, null, null, @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps)),
         KeyValue(Build(109, "Onboarding de novos usuários", "Epic", null, null, null, null, @"GestorBacklogs\Sprint 24", AreaSre)),
         KeyValue(Build(110, "Pacote Infra Q3", "Pacote de Trabalho", null, null, null, null, @"GestorBacklogs\Sprint 24", AreaSre)),
         // Sprint 25
-        KeyValue(Build(201, "Como usuário, quero receber notificações por e-mail", "Product Backlog Item", "M", 8, "Planejado - Sprint", "diego@empresa.com", @"GestorBacklogs\Sprint 25", AreaPlataformaDevOps, state: "Proposed")),
+        KeyValue(Build(201, "Como usuário, quero receber notificações por e-mail", "Product Backlog Item", "M", 8, "Planejado - Sprint.", "diego@empresa.com", @"GestorBacklogs\Sprint 25", AreaPlataformaDevOps, state: "Proposed")),
         KeyValue(Build(202, "Como usuário, quero integrar com Microsoft Teams", "Product Backlog Item", "GG", 40, null, "carla@empresa.com", @"GestorBacklogs\Sprint 25", AreaSre, state: "Active")),
         // User Stories filhas de um parent (Epic/Feature/Pacote de Trabalho), usadas na tela "Tasks por parent".
         KeyValue(Build(301, "Como admin, quero escolher o formato do relatório (PDF/Excel)", "User Story", "P", 4, null, "carla@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, state: "Active")),

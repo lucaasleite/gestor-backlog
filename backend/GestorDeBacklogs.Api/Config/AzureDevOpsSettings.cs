@@ -11,7 +11,7 @@ public class AzureDevOpsSettings
 
     // Tag aplicada no planning às demandas combinadas com o time; qualquer item sem essa tag
     // é considerado "Fora da Sprint" pro dashboard (ver SprintCategoryClassifier).
-    public string PlannedTagName { get; set; } = "Planejado - Sprint";
+    public string PlannedTagName { get; set; } = "Planejado - Sprint.";
 
     // States que contam como concluído pros indicadores de entrega do dashboard.
     public string[] DoneStates { get; set; } = ["Resolved", "Closed"];
