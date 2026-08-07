@@ -239,6 +239,8 @@ public class AzureDevOpsClient(
 
         (sizeLabel, effortHours) = SizeTagResolver.Resolve(sizeLabel, effortHours, tags);
 
+        var tagList = tags?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+
         var originalEstimate = ReadDouble(fields, "Microsoft.VSTS.Scheduling.OriginalEstimate");
         var remainingWork = ReadDouble(fields, "Microsoft.VSTS.Scheduling.RemainingWork");
         var completedWork = ReadDouble(fields, "Microsoft.VSTS.Scheduling.CompletedWork");
@@ -266,7 +268,8 @@ public class AzureDevOpsClient(
             originalEstimate,
             remainingWork,
             completedWork,
-            state);
+            state,
+            tagList);
     }
 
     private static double? ReadDouble(JsonElement fields, string fieldName) =>

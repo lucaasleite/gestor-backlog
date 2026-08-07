@@ -14,7 +14,8 @@ public record WorkItemDto(
     double? OriginalEstimate = null,
     double? RemainingWork = null,
     double? CompletedWork = null,
-    string? State = null);
+    string? State = null,
+    IReadOnlyList<string>? Tags = null);
 
 public record PlannedTaskDto(string Title, double Hours);
 

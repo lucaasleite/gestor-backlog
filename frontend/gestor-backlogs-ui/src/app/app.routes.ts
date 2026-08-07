@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { FullLayoutComponent } from './layout/full-layout/full-layout.component';
 import { ConfigComponent } from './config/config.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
 import { WorkItemsComponent } from './work-items/work-items.component';
 import { ParentTasksComponent } from './parent-tasks/parent-tasks.component';
 import { SingleItemComponent } from './single-item/single-item.component';
@@ -13,6 +14,7 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'work-items' },
       { path: 'config', component: ConfigComponent },
+      { path: 'dashboard', component: DashboardComponent, canActivate: [configuredGuard] },
       { path: 'work-items', component: WorkItemsComponent, canActivate: [configuredGuard] },
       { path: 'parent-tasks', component: ParentTasksComponent, canActivate: [configuredGuard] },
       { path: 'single-item', component: SingleItemComponent, canActivate: [configuredGuard] },

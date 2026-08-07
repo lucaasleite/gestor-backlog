@@ -11,6 +11,7 @@ import {
   Iteration,
   ParentUserStory,
   RegenerateTasksResult,
+  SprintDashboard,
   TaskOverride,
   WorkItemPreview,
   WorkItemTask,
@@ -76,5 +77,13 @@ export class ApiService {
 
   closeWorkItem(id: number): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/workitems/${id}/close`, {});
+  }
+
+  getSprintDashboard(team: string, areaPath: string | null, iterationPath: string): Observable<SprintDashboard> {
+    const params: Record<string, string> = { team, iterationPath };
+    if (areaPath) {
+      params['areaPath'] = areaPath;
+    }
+    return this.http.get<SprintDashboard>(`${this.baseUrl}/dashboard`, { params });
   }
 }

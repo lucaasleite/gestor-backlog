@@ -1,0 +1,310 @@
+<div>
+  <h1>Dashboard da Sprint</h1>
+  <p class="text-dim">Planejado vs Fora da Sprint — sempre em quantidade de itens e em esforço (horas) lado a lado.</p>
+</div>
+
+<section class="card">
+  <div class="actions-bar">
+    <div class="field" style="min-width: 200px;">
+      <label for="squad">Squad</label>
+      <select id="squad" [ngModel]="selectedTeamName()" (ngModelChange)="onTeamChange($event)">
+        @for (team of teams(); track team.name) {
+          <option [value]="team.name">{{ team.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field" style="min-width: 240px;">
+      <label for="sprint">Sprint</label>
+      <select
+        id="sprint"
+        [ngModel]="selectedIterationPath()"
+        (ngModelChange)="onSprintChange($event)"
+        [disabled]="loadingSprints()"
+      >
+        @for (sprint of sprints(); track sprint.id) {
+          <option [value]="sprint.path">{{ sprint.name }}{{ sprint.isCurrent ? ' (atual)' : '' }}</option>
+        }
+      </select>
+    </div>
+
+    <button
+      type="button"
+      (click)="loadDashboard()"
+      [disabled]="loadingSprints() || loadingDashboard() || !selectedIterationPath()"
+    >
+      {{ loadingDashboard() ? 'Carregando...' : 'Carregar Dashboard' }}
+    </button>
+  </div>
+</section>
+
+@if (errorMessage()) {
+  <div class="banner error">{{ errorMessage() }}</div>
+}
+
+@if (loadingDashboard()) {
+  <section class="card">
+    <div style="display: flex; justify-content: center; padding: 24px;">
+      <div class="spinner"></div>
+    </div>
+  </section>
+} @else if (!hasLoadedOnce()) {
+  <section class="card">
+    <p class="text-dim" style="text-align: center; padding: 24px;">
+      Escolha a squad e a sprint e clique em "Carregar Dashboard".
+    </p>
+  </section>
+} @else if (dashboard(); as d) {
+  <div class="section-divider"><span>Visão geral do sprint</span></div>
+
+  <div class="dash-kpi-grid">
+    <div class="dash-kpi">
+      <span class="dash-kpi-label">Total no sprint</span>
+      <span class="dash-kpi-value">{{ totalItems() }}</span>
+      <span class="dash-kpi-sub">itens</span>
+    </div>
+    <div class="dash-kpi dash-accent-planejado">
+      <span class="dash-kpi-label">Planejado no planning</span>
+      <span class="dash-kpi-value">{{ d.plannedItems }}</span>
+      <span class="dash-kpi-sub">itens</span>
+    </div>
+    <div class="dash-kpi dash-accent-fora">
+      <span class="dash-kpi-label">Fora da sprint</span>
+      <span class="dash-kpi-value">{{ d.outOfSprintItems }}</span>
+      <span class="dash-kpi-sub">itens</span>
+    </div>
+    <div class="dash-kpi dash-accent-fora">
+      <span class="dash-kpi-label">% fora da sprint</span>
+      <span class="dash-kpi-value">{{ pctOutOfSprintItems() }}%</span>
+      <span class="dash-kpi-sub">
+        @if (pctOutOfSprintDelta(); as delta) {
+          <span class="dash-delta" [class.up]="delta >= 0" [class.down]="delta < 0">
+            {{ delta >= 0 ? '▲ +' + delta : '▼ ' + delta }} pts
+          </span>
+          vs sprint anterior
+        } @else {
+          sem sprint anterior pra comparar
+        }
+      </span>
+    </div>
+    <div class="dash-kpi dash-accent-good">
+      <span class="dash-kpi-label">Concluído · planejado</span>
+      <span class="dash-kpi-value">{{ plannedDonePct() }}%</span>
+      <span class="dash-kpi-sub">{{ d.plannedDoneItems }} de {{ d.plannedItems }} itens</span>
+    </div>
+    <div class="dash-kpi dash-accent-bad">
+      <span class="dash-kpi-label">Concluído · fora da sprint</span>
+      <span class="dash-kpi-value">{{ outOfSprintDonePct() }}%</span>
+      <span class="dash-kpi-sub">{{ d.outOfSprintDoneItems }} de {{ d.outOfSprintItems }} itens</span>
+    </div>
+  </div>
+
+  <div class="dash-row-2">
+    <div class="card">
+      <h2>Composição do sprint atual</h2>
+
+      <div class="dash-metric-block">
+        <div class="dash-metric-block-title">Por quantidade de itens</div>
+        <div class="dash-legend">
+          <div class="dash-legend-item"><span class="dash-legend-dot planejado"></span> Planejado {{ compositionByItems().plannedLabel }}</div>
+          <div class="dash-legend-item"><span class="dash-legend-dot fora"></span> Fora da sprint {{ compositionByItems().outOfSprintLabel }}</div>
+        </div>
+        <div class="dash-comp-bar">
+          <div class="dash-comp-seg planejado" [style.width.%]="compositionByItems().plannedPct"></div>
+          <div class="dash-comp-seg fora" [style.width.%]="compositionByItems().outOfSprintPct"></div>
+        </div>
+      </div>
+
+      <div class="dash-metric-block">
+        <div class="dash-metric-block-title">Por esforço (horas)</div>
+        <div class="dash-legend">
+          <div class="dash-legend-item"><span class="dash-legend-dot planejado"></span> Planejado {{ compositionByHours().plannedLabel }}</div>
+          <div class="dash-legend-item"><span class="dash-legend-dot fora"></span> Fora da sprint {{ compositionByHours().outOfSprintLabel }}</div>
+        </div>
+        <div class="dash-comp-bar">
+          <div class="dash-comp-seg planejado" [style.width.%]="compositionByHours().plannedPct"></div>
+          <div class="dash-comp-seg fora" [style.width.%]="compositionByHours().outOfSprintPct"></div>
+        </div>
+      </div>
+
+      <p class="dash-card-note">Mesma sprint, duas leituras — quando a fatia de itens fora da sprint é bem maior que a
+        de horas, o que chega fora do planning costuma ser menor (e vice-versa).</p>
+    </div>
+
+    <div class="card">
+      <h2>Entrega: planejado vs fora da sprint</h2>
+      <div class="dash-completion-row">
+        <div class="dash-completion-item">
+          <div class="dash-completion-head">
+            <span class="dash-name"><span class="dash-legend-dot planejado"></span> Planejado</span>
+            <span class="dash-value">{{ plannedDonePct() }}% ({{ d.plannedDoneItems }}/{{ d.plannedItems }})</span>
+          </div>
+          <div class="dash-completion-track">
+            <div class="dash-completion-fill planejado" [style.width.%]="plannedDonePct()"></div>
+          </div>
+        </div>
+        <div class="dash-completion-item">
+          <div class="dash-completion-head">
+            <span class="dash-name"><span class="dash-legend-dot fora"></span> Fora da sprint</span>
+            <span class="dash-value">{{ outOfSprintDonePct() }}% ({{ d.outOfSprintDoneItems }}/{{ d.outOfSprintItems }})</span>
+          </div>
+          <div class="dash-completion-track">
+            <div class="dash-completion-fill fora" [style.width.%]="outOfSprintDonePct()"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Tendência — últimas sprints</h2>
+    <div class="dash-legend">
+      <div class="dash-legend-item"><span class="dash-legend-dot planejado"></span> Planejado</div>
+      <div class="dash-legend-item"><span class="dash-legend-dot fora"></span> Fora da sprint</div>
+      <div class="dash-legend-item dash-legend-sub">Rótulo acima da barra = % fora da sprint naquela leitura</div>
+    </div>
+
+    <div class="dash-metric-block">
+      <div class="dash-metric-block-title">Por quantidade de itens</div>
+      <div class="dash-trend-bars">
+        @for (point of trendByItems(); track point.label) {
+          <div class="dash-trend-bar-wrap">
+            <div class="dash-trend-pct" [class.hot]="point.pctOutOfSprint >= 20">{{ point.pctOutOfSprint }}%</div>
+            <div class="dash-trend-bar" [style.height.%]="point.barHeightPct">
+              <div class="dash-trend-seg fora" [style.height.%]="point.outOfSprintSharePct"></div>
+              <div class="dash-trend-seg planejado" [style.height.%]="point.plannedSharePct"></div>
+            </div>
+          </div>
+        }
+      </div>
+      <div class="dash-trend-labels">
+        @for (point of trendByItems(); track point.label) {
+          <div class="dash-trend-label-wrap" [class.current]="point.isCurrent">
+            @if (point.isCurrent) { <span class="dash-current-dot"></span> }
+            {{ point.label }}
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="dash-metric-block">
+      <div class="dash-metric-block-title">Por esforço (horas)</div>
+      <div class="dash-trend-bars">
+        @for (point of trendByHours(); track point.label) {
+          <div class="dash-trend-bar-wrap">
+            <div class="dash-trend-pct" [class.hot]="point.pctOutOfSprint >= 20">{{ point.pctOutOfSprint }}%</div>
+            <div class="dash-trend-bar" [style.height.%]="point.barHeightPct">
+              <div class="dash-trend-seg fora" [style.height.%]="point.outOfSprintSharePct"></div>
+              <div class="dash-trend-seg planejado" [style.height.%]="point.plannedSharePct"></div>
+            </div>
+          </div>
+        }
+      </div>
+      <div class="dash-trend-labels">
+        @for (point of trendByHours(); track point.label) {
+          <div class="dash-trend-label-wrap" [class.current]="point.isCurrent">
+            @if (point.isCurrent) { <span class="dash-current-dot"></span> }
+            {{ point.label }}
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>Por analista</span></div>
+
+  <div class="card">
+    <h2>Carga por analista — planejado vs fora da sprint</h2>
+    <div class="dash-legend">
+      <div class="dash-legend-item"><span class="dash-legend-dot planejado"></span> Planejado</div>
+      <div class="dash-legend-item"><span class="dash-legend-dot fora"></span> Fora da sprint</div>
+      <div class="dash-legend-item dash-legend-sub">Total ao lado = itens (horas)</div>
+    </div>
+    <div class="dash-analyst-bars">
+      @for (a of analystBars(); track a.name) {
+        <div class="dash-analyst-row">
+          <div class="dash-analyst-name" [title]="a.name">{{ a.name }}</div>
+          <div class="dash-analyst-bar-track">
+            <div class="dash-analyst-bar-fill" [style.width.%]="a.fillPct">
+              <div class="dash-analyst-seg planejado" [style.width.%]="a.plannedSharePct"></div>
+              <div class="dash-analyst-seg fora" [style.width.%]="a.outOfSprintSharePct"></div>
+            </div>
+          </div>
+          <div class="dash-analyst-total">{{ a.totalLabel }}</div>
+        </div>
+      }
+    </div>
+    <p class="dash-card-note">Ordenado do maior para o menor volume total de itens no sprint.</p>
+  </div>
+
+  <div class="card">
+    <h2>Conclusão por analista</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Analista</th>
+            <th>Planejado</th>
+            <th>Fora da sprint</th>
+            <th>% fora</th>
+            <th>Horas</th>
+            <th>Concluído</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of analystTable(); track a.name) {
+            <tr>
+              <td>{{ a.name }}</td>
+              <td>{{ a.plannedItems }}</td>
+              <td>{{ a.outOfSprintItems }}</td>
+              <td>{{ a.pctOutOfSprint }}%</td>
+              <td>{{ a.hours }}h</td>
+              <td>
+                <div class="dash-mini-bar-cell">
+                  <div class="dash-mini-bar-track">
+                    <div class="dash-mini-bar-fill" [class]="'dash-mini-bar-fill ' + a.doneClass" [style.width.%]="a.donePct"></div>
+                  </div>
+                  <span class="dash-mini-bar-value" [class]="'dash-mini-bar-value ' + a.doneClass">{{ a.donePct }}%</span>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="dash-card-note">Ordenado do menor para o maior % concluído — quem está mais em risco aparece primeiro.</p>
+  </div>
+
+  <div class="section-divider"><span>Detalhe</span></div>
+
+  <div class="card">
+    <h2>Itens fora da sprint — sprint atual ({{ d.outOfSprintItems }})</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Tipo</th>
+            <th>Responsável</th>
+            <th>Esforço</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of d.outOfSprintDetail; track item.id) {
+            <tr>
+              <td>{{ item.title }}</td>
+              <td class="dim">{{ item.workItemType }}</td>
+              <td>{{ item.assignedTo ?? '(Sem responsável)' }}</td>
+              <td>{{ item.effortHours ?? '—' }}{{ item.effortHours ? 'h' : '' }}</td>
+              <td><span class="badge" [class]="'badge ' + stateBadgeClass(item.state)">{{ item.state ?? '—' }}</span></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="dim">Nenhum item fora da sprint nessa sprint.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="dash-card-note">Útil para negociar com os times que mandam demanda pós-planning.</p>
+  </div>
+}

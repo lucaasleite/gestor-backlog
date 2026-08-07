@@ -29,6 +29,7 @@ else
 }
 
 builder.Services.AddScoped<IWorkItemService, WorkItemService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 var app = builder.Build();
 
@@ -37,6 +38,7 @@ app.UseStaticFiles();
 
 app.MapConfigEndpoints();
 app.MapWorkItemsEndpoints();
+app.MapDashboardEndpoints();
 
 app.MapFallbackToFile("index.html");
 

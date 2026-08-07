@@ -4,24 +4,13 @@ namespace GestorDeBacklogs.Api.Services;
 
 public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
 {
-    // Tipos que não fazem parte do fluxo de geração de tasks e não devem aparecer na listagem da sprint.
-    // Task entra aqui porque ela só deve aparecer aninhada (expand) sob o pai, nunca como linha solta.
-    private static readonly HashSet<string> ExcludedTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Ação de Gestão",
-        "Feature",
-        "Epic",
-        "Pacote de Trabalho",
-        "Task",
-    };
-
     public async Task<IReadOnlyList<WorkItemPreviewDto>> GetSprintPreviewAsync(string iterationPath, string? areaPath, CancellationToken ct = default)
     {
         var ids = await client.QueryWorkItemIdsForIterationAsync(iterationPath, areaPath, ct);
         var workItems = await client.GetWorkItemsByIdsAsync(ids, ct);
 
         return workItems
-            .Where(wi => !ExcludedTypes.Contains(wi.WorkItemType))
+            .Where(wi => !WorkItemTypeFilters.ExcludedFromSprintView.Contains(wi.WorkItemType))
             .Select(BuildPreview)
             .ToList();
     }

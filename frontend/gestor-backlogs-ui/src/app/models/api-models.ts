@@ -107,3 +107,45 @@ export interface GenerateTasksFromParentRequest {
   userStoryIds: number[];
   iterationPaths: string[];
 }
+
+export interface SprintTrendPoint {
+  label: string;
+  isCurrent: boolean;
+  plannedItems: number;
+  outOfSprintItems: number;
+  plannedHours: number;
+  outOfSprintHours: number;
+}
+
+export interface AnalystBreakdown {
+  name: string;
+  plannedItems: number;
+  outOfSprintItems: number;
+  plannedHours: number;
+  outOfSprintHours: number;
+  doneItems: number;
+  totalItems: number;
+}
+
+export interface OutOfSprintItem {
+  id: number;
+  title: string;
+  workItemType: string;
+  assignedTo: string | null;
+  effortHours: number | null;
+  state: string | null;
+}
+
+export interface SprintDashboard {
+  plannedItems: number;
+  outOfSprintItems: number;
+  plannedHours: number;
+  outOfSprintHours: number;
+  plannedDoneItems: number;
+  outOfSprintDoneItems: number;
+  plannedDoneHours: number;
+  outOfSprintDoneHours: number;
+  trend: SprintTrendPoint[];
+  analysts: AnalystBreakdown[];
+  outOfSprintDetail: OutOfSprintItem[];
+}

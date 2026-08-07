@@ -45,25 +45,4 @@ public static class WorkItemsEndpoints
         group.MapPost("/parent/generate-tasks", async (GenerateTasksFromParentRequest request, IWorkItemService service) =>
             Results.Ok(await service.GenerateTasksFromParentAsync(request)));
     }
-
-    private static RouteGroupBuilder WithErrorHandling(this RouteGroupBuilder group)
-    {
-        group.AddEndpointFilter(async (context, next) =>
-        {
-            try
-            {
-                return await next(context);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Results.BadRequest(new { message = ex.Message });
-            }
-            catch (HttpRequestException ex)
-            {
-                return Results.Problem(ex.Message, statusCode: StatusCodes.Status502BadGateway);
-            }
-        });
-
-        return group;
-    }
 }
