@@ -62,33 +62,13 @@
               <td>{{ us.effortHours ?? '-' }}</td>
               <td>{{ us.assignedTo ?? '-' }}</td>
               <td>
-                @if (closedIds().has(us.id)) {
-                  <span class="badge">Fechada</span>
+                @if (us.alreadyHasTasks) {
+                  <span class="badge warning">Já possui tasks</span>
                 } @else {
-                  @if (us.alreadyHasTasks) {
-                    <span class="badge warning">Já possui tasks</span>
-                  } @else {
-                    <span class="badge success">Sem tasks</span>
-                  }
-                  <button
-                    type="button"
-                    class="ghost"
-                    style="margin-left: 8px; padding: 3px 10px; font-size: 12px;"
-                    [disabled]="closingIds().has(us.id)"
-                    (click)="closeUs(us)"
-                  >
-                    {{ closingIds().has(us.id) ? 'Fechando...' : 'Fechar' }}
-                  </button>
+                  <span class="badge success">Sem tasks</span>
                 }
               </td>
             </tr>
-            @if (closeErrors().get(us.id); as closeError) {
-              <tr>
-                <td [attr.colspan]="6" style="padding: 0 10px 10px;">
-                  <div class="banner error">{{ closeError }}</div>
-                </td>
-              </tr>
-            }
             @if (expandedIds().has(us.id)) {
               <tr class="child-tasks-row">
                 <td [attr.colspan]="6">
@@ -108,6 +88,7 @@
                           <th>Restantes</th>
                           <th>Completadas</th>
                           <th>Status</th>
+                          <th>Ação</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -119,6 +100,26 @@
                             <td>{{ task.remainingWork ?? '-' }}</td>
                             <td>{{ task.completedWork ?? '-' }}</td>
                             <td>{{ task.state ?? '-' }}</td>
+                            <td>
+                              @if (task.state === 'Closed') {
+                                <span class="badge">Fechada</span>
+                              } @else {
+                                <button
+                                  type="button"
+                                  class="ghost"
+                                  style="padding: 3px 10px; font-size: 12px;"
+                                  [disabled]="closingTaskIds().has(task.id)"
+                                  (click)="closeTask(task, us.id)"
+                                >
+                                  {{ closingTaskIds().has(task.id) ? 'Fechando...' : 'Fechar' }}
+                                </button>
+                              }
+                              @if (closeTaskErrors().get(task.id); as closeError) {
+                                <div class="banner error" style="margin-top: 4px; padding: 4px 8px; font-size: 12px;">
+                                  {{ closeError }}
+                                </div>
+                              }
+                            </td>
                           </tr>
                         }
                       </tbody>

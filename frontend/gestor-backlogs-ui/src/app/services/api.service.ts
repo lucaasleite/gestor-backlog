@@ -79,6 +79,10 @@ export class ApiService {
     return this.http.post<void>(`${this.baseUrl}/workitems/${id}/close`, {});
   }
 
+  moveToIteration(id: number, iterationPath: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/workitems/${id}/move-to-iteration`, { iterationPath });
+  }
+
   getSprintDashboard(team: string, areaPath: string | null, iterationPath: string): Observable<SprintDashboard> {
     const params: Record<string, string> = { team, iterationPath };
     if (areaPath) {

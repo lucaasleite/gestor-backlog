@@ -28,9 +28,8 @@ export class ParentTasksComponent implements OnInit {
   sprints = signal<Iteration[]>([]);
   selectedSprintPaths = signal<Set<string>>(new Set());
 
-  closingIds = signal<Set<number>>(new Set());
-  closedIds = signal<Set<number>>(new Set());
-  closeErrors = signal<Map<number, string>>(new Map());
+  closingTaskIds = signal<Set<number>>(new Set());
+  closeTaskErrors = signal<Map<number, string>>(new Map());
 
   generating = signal(false);
   errorMessage = signal('');
@@ -141,40 +140,38 @@ export class ParentTasksComponent implements OnInit {
     this.selectedUsIds.set(ids);
   }
 
-  closeUs(us: ParentUserStory): void {
-    const confirmed = window.confirm(`Isso vai fechar a US "${us.title}" (#${us.id}) no Azure DevOps. Continuar?`);
+  closeTask(task: WorkItemTask, parentId: number): void {
+    const confirmed = window.confirm(`Isso vai fechar a task "${task.title}" (#${task.id}) no Azure DevOps. Continuar?`);
     if (!confirmed) {
       return;
     }
 
-    const closing = new Set(this.closingIds());
-    closing.add(us.id);
-    this.closingIds.set(closing);
+    const closing = new Set(this.closingTaskIds());
+    closing.add(task.id);
+    this.closingTaskIds.set(closing);
 
-    const errors = new Map(this.closeErrors());
-    errors.delete(us.id);
-    this.closeErrors.set(errors);
+    const errors = new Map(this.closeTaskErrors());
+    errors.delete(task.id);
+    this.closeTaskErrors.set(errors);
 
-    this.api.closeWorkItem(us.id).subscribe({
+    this.api.closeWorkItem(task.id).subscribe({
       next: () => {
-        this.finishClosing(us.id);
-        const closed = new Set(this.closedIds());
-        closed.add(us.id);
-        this.closedIds.set(closed);
+        this.finishClosingTask(task.id);
+        this.loadChildTasks(parentId);
       },
       error: (err) => {
-        this.finishClosing(us.id);
-        const errs = new Map(this.closeErrors());
-        errs.set(us.id, err?.error?.message ?? 'Erro ao fechar a US.');
-        this.closeErrors.set(errs);
+        this.finishClosingTask(task.id);
+        const errs = new Map(this.closeTaskErrors());
+        errs.set(task.id, err?.error?.message ?? 'Erro ao fechar a task.');
+        this.closeTaskErrors.set(errs);
       },
     });
   }
 
-  private finishClosing(id: number): void {
-    const closing = new Set(this.closingIds());
+  private finishClosingTask(id: number): void {
+    const closing = new Set(this.closingTaskIds());
     closing.delete(id);
-    this.closingIds.set(closing);
+    this.closingTaskIds.set(closing);
   }
 
   toggleSprint(path: string, checked: boolean): void {
@@ -198,6 +195,10 @@ export class ParentTasksComponent implements OnInit {
       return;
     }
 
+    this.loadChildTasks(id);
+  }
+
+  private loadChildTasks(id: number): void {
     const loading = new Set(this.loadingTasksFor());
     loading.add(id);
     this.loadingTasksFor.set(loading);

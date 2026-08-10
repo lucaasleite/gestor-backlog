@@ -54,6 +54,12 @@ export class WorkItemsComponent implements OnInit {
   regenerateResults = signal<Map<number, RegenerateTasksResult>>(new Map());
   regenerateErrors = signal<Map<number, string>>(new Map());
 
+  closingTaskIds = signal<Set<number>>(new Set());
+  closeTaskErrors = signal<Map<number, string>>(new Map());
+
+  movingTaskIds = signal<Set<number>>(new Set());
+  moveTaskErrors = signal<Map<number, string>>(new Map());
+
   selectedTeam = computed(() => this.teams().find((t) => t.name === this.selectedTeamName()) ?? null);
 
   availableTypes = computed(() => [...new Set(this.workItems().map((wi) => wi.workItemType))].sort());
@@ -300,6 +306,86 @@ export class WorkItemsComponent implements OnInit {
     const active = new Set(this.regeneratingIds());
     active.delete(id);
     this.regeneratingIds.set(active);
+  }
+
+  closeTask(task: WorkItemTask, parentId: number): void {
+    const confirmed = window.confirm(`Isso vai fechar a task "${task.title}" (#${task.id}) no Azure DevOps. Continuar?`);
+    if (!confirmed) {
+      return;
+    }
+
+    const closing = new Set(this.closingTaskIds());
+    closing.add(task.id);
+    this.closingTaskIds.set(closing);
+
+    const errors = new Map(this.closeTaskErrors());
+    errors.delete(task.id);
+    this.closeTaskErrors.set(errors);
+
+    this.api.closeWorkItem(task.id).subscribe({
+      next: () => {
+        this.finishClosingTask(task.id);
+        this.loadChildTasks(parentId);
+      },
+      error: (err) => {
+        this.finishClosingTask(task.id);
+        const errs = new Map(this.closeTaskErrors());
+        errs.set(task.id, err?.error?.message ?? 'Erro ao fechar a task.');
+        this.closeTaskErrors.set(errs);
+      },
+    });
+  }
+
+  private finishClosingTask(id: number): void {
+    const closing = new Set(this.closingTaskIds());
+    closing.delete(id);
+    this.closingTaskIds.set(closing);
+  }
+
+  iterationLabel(iterationPath: string): string {
+    const segments = iterationPath.split('\\').filter(Boolean);
+    return segments.length > 0 ? segments[segments.length - 1] : iterationPath;
+  }
+
+  isTaskInCurrentSprint(task: WorkItemTask): boolean {
+    return task.iterationPath === this.selectedIterationPath();
+  }
+
+  moveTaskToCurrentSprint(task: WorkItemTask, parentId: number): void {
+    const iterationPath = this.selectedIterationPath();
+    const confirmed = window.confirm(
+      `Isso vai mover a task "${task.title}" (#${task.id}) para a sprint atual (${this.iterationLabel(iterationPath)}). Continuar?`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    const moving = new Set(this.movingTaskIds());
+    moving.add(task.id);
+    this.movingTaskIds.set(moving);
+
+    const errors = new Map(this.moveTaskErrors());
+    errors.delete(task.id);
+    this.moveTaskErrors.set(errors);
+
+    this.api.moveToIteration(task.id, iterationPath).subscribe({
+      next: () => {
+        this.finishMovingTask(task.id);
+        this.loadChildTasks(parentId);
+      },
+      error: (err) => {
+        this.finishMovingTask(task.id);
+        const errs = new Map(this.moveTaskErrors());
+        errs.set(task.id, err?.error?.message ?? 'Erro ao mover a task para a sprint atual.');
+        this.moveTaskErrors.set(errs);
+      },
+    });
+  }
+
+  private finishMovingTask(id: number): void {
+    const moving = new Set(this.movingTaskIds());
+    moving.delete(id);
+    this.movingTaskIds.set(moving);
   }
 
   formatCreatedTasks(item: GenerateTasksItemResult): string {

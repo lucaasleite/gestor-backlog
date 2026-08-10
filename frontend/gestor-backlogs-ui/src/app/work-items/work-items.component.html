@@ -278,10 +278,12 @@
                           <tr>
                             <th>Título</th>
                             <th>Responsável</th>
+                            <th>Iteration</th>
                             <th>Estimadas</th>
                             <th>Restantes</th>
                             <th>Completadas</th>
                             <th>Status</th>
+                            <th>Ação</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -289,10 +291,49 @@
                             <tr>
                               <td><a [href]="workItemUrl(task.id)" target="_blank" rel="noopener">#{{ task.id }}</a> {{ task.title }}</td>
                               <td>{{ task.assignedTo ?? '-' }}</td>
+                              <td>{{ iterationLabel(task.iterationPath) }}</td>
                               <td>{{ task.originalEstimate ?? '-' }}</td>
                               <td>{{ task.remainingWork ?? '-' }}</td>
                               <td>{{ task.completedWork ?? '-' }}</td>
                               <td>{{ task.state ?? '-' }}</td>
+                              <td>
+                                <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+                                  @if (task.state === 'Closed') {
+                                    <span class="badge">Fechada</span>
+                                  } @else {
+                                    <button
+                                      type="button"
+                                      class="ghost"
+                                      style="padding: 3px 10px; font-size: 12px;"
+                                      [disabled]="closingTaskIds().has(task.id)"
+                                      (click)="closeTask(task, item.id)"
+                                    >
+                                      {{ closingTaskIds().has(task.id) ? 'Fechando...' : 'Fechar' }}
+                                    </button>
+                                    @if (!isTaskInCurrentSprint(task)) {
+                                      <button
+                                        type="button"
+                                        class="ghost"
+                                        style="padding: 3px 10px; font-size: 12px;"
+                                        [disabled]="movingTaskIds().has(task.id)"
+                                        (click)="moveTaskToCurrentSprint(task, item.id)"
+                                      >
+                                        {{ movingTaskIds().has(task.id) ? 'Movendo...' : 'Trazer p/ sprint atual' }}
+                                      </button>
+                                    }
+                                  }
+                                </div>
+                                @if (closeTaskErrors().get(task.id); as closeError) {
+                                  <div class="banner error" style="margin-top: 4px; padding: 4px 8px; font-size: 12px;">
+                                    {{ closeError }}
+                                  </div>
+                                }
+                                @if (moveTaskErrors().get(task.id); as moveError) {
+                                  <div class="banner error" style="margin-top: 4px; padding: 4px 8px; font-size: 12px;">
+                                    {{ moveError }}
+                                  </div>
+                                }
+                              </td>
                             </tr>
                           }
                         </tbody>

@@ -20,4 +20,6 @@ public interface IAzureDevOpsClient
     Task<int> CreateTaskAsync(WorkItemDto parent, string title, double hours, string iterationPath, CancellationToken ct = default);
 
     Task CloseWorkItemAsync(int id, CancellationToken ct = default);
+
+    Task MoveToIterationAsync(int id, string iterationPath, CancellationToken ct = default);
 }

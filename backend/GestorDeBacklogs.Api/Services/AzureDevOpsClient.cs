@@ -214,6 +214,24 @@ public class AzureDevOpsClient(
         await EnsureSuccessAsync(response, ct);
     }
 
+    public async Task MoveToIterationAsync(int id, string iterationPath, CancellationToken ct = default)
+    {
+        var (client, conn) = GetConfiguredClient();
+        var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/{id}?api-version={_settings.ApiVersion}";
+
+        var ops = new object[]
+        {
+            new { op = "add", path = "/fields/System.IterationPath", value = iterationPath },
+        };
+
+        using var content = new StringContent(JsonSerializer.Serialize(ops), Encoding.UTF8);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json-patch+json");
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, url) { Content = content };
+        using var response = await client.SendAsync(request, ct);
+        await EnsureSuccessAsync(response, ct);
+    }
+
     private WorkItemDto ParseWorkItem(JsonElement item)
     {
         var fields = item.GetProperty("fields");

@@ -152,4 +152,14 @@ public class MockAzureDevOpsClient : IAzureDevOpsClient
 
         return Task.CompletedTask;
     }
+
+    public Task MoveToIterationAsync(int id, string iterationPath, CancellationToken ct = default)
+    {
+        if (Items.TryGetValue(id, out var item))
+        {
+            Items[id] = item with { IterationPath = iterationPath };
+        }
+
+        return Task.CompletedTask;
+    }
 }

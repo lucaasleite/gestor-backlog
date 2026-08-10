@@ -9,6 +9,8 @@ public record GenerateTasksRequest(
 
 public record GenerateTaskForItemRequest(IReadOnlyList<TaskOverride>? Tasks = null);
 
+public record MoveToIterationRequest(string IterationPath);
+
 public record GenerateTasksFromParentRequest(IReadOnlyList<int> UserStoryIds, IReadOnlyList<string> IterationPaths);
 
 public record CreatedTaskInfo(int Id, string Title, double HoursEstimate);

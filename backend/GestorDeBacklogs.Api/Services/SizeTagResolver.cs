@@ -1,7 +1,8 @@
 namespace GestorDeBacklogs.Api.Services;
 
-// Fallback usado quando o work item não tem o campo de tamanho preenchido: procura uma tag
-// #PP/#P/#M/#G/#GG (System.Tags) e usa o mapeamento abaixo pra também inferir o Effort.
+// Fallback usado quando o campo de Effort não está preenchido: tenta inferir as horas a partir
+// do próprio campo de tamanho (Custom.EstimativaSize já com "PP"/"P"/"M"/"G"/"GG") ou, se este
+// também estiver vazio, de uma tag #PP/#P/#M/#G/#GG (System.Tags).
 public static class SizeTagResolver
 {
     private static readonly Dictionary<string, int> HoursByTag = new(StringComparer.OrdinalIgnoreCase)
@@ -15,7 +16,18 @@ public static class SizeTagResolver
 
     public static (string? SizeLabel, int? EffortHours) Resolve(string? currentSizeLabel, int? currentEffortHours, string? tags)
     {
-        if (!string.IsNullOrWhiteSpace(currentSizeLabel) || string.IsNullOrWhiteSpace(tags))
+        if (currentEffortHours is not null)
+        {
+            return (currentSizeLabel, currentEffortHours);
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentSizeLabel) &&
+            HoursByTag.TryGetValue(currentSizeLabel.Trim().TrimStart('#'), out var hoursFromLabel))
+        {
+            return (currentSizeLabel, hoursFromLabel);
+        }
+
+        if (string.IsNullOrWhiteSpace(tags))
         {
             return (currentSizeLabel, currentEffortHours);
         }
@@ -25,7 +37,7 @@ public static class SizeTagResolver
             var tag = rawTag.Trim().TrimStart('#');
             if (HoursByTag.TryGetValue(tag, out var hours))
             {
-                return (tag.ToUpperInvariant(), currentEffortHours ?? hours);
+                return (currentSizeLabel ?? tag.ToUpperInvariant(), hours);
             }
         }
 

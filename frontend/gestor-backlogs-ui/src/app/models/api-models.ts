@@ -51,6 +51,7 @@ export interface WorkItemTask {
   remainingWork: number | null;
   completedWork: number | null;
   state: string | null;
+  iterationPath: string;
 }
 
 export interface TaskOverride {

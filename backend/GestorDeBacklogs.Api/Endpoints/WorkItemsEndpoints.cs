@@ -33,6 +33,12 @@ public static class WorkItemsEndpoints
             return Results.Ok();
         });
 
+        group.MapPost("/workitems/{id:int}/move-to-iteration", async (int id, MoveToIterationRequest request, IAzureDevOpsClient client) =>
+        {
+            await client.MoveToIterationAsync(id, request.IterationPath);
+            return Results.Ok();
+        });
+
         group.MapGet("/workitems/{id:int}/preview", async (int id, IWorkItemService service) =>
             Results.Ok(await service.GetWorkItemPreviewAsync(id)));
 
