@@ -372,6 +372,10 @@ tr:last-child td {
   opacity: 0.5;
 }
 
+.row-flagged {
+  box-shadow: inset 3px 0 0 var(--error);
+}
+
 /* Checkbox */
 input[type="checkbox"] {
   width: 17px;

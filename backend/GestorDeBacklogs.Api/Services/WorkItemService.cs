@@ -1,18 +1,48 @@
+using GestorDeBacklogs.Api.Config;
 using GestorDeBacklogs.Api.Models;
+using Microsoft.Extensions.Options;
 
 namespace GestorDeBacklogs.Api.Services;
 
-public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
+public class WorkItemService(IAzureDevOpsClient client, IOptionsSnapshot<AzureDevOpsSettings> options) : IWorkItemService
 {
+    private readonly AzureDevOpsSettings _settings = options.Value;
+
     public async Task<IReadOnlyList<WorkItemPreviewDto>> GetSprintPreviewAsync(string iterationPath, string? areaPath, CancellationToken ct = default)
     {
         var ids = await client.QueryWorkItemIdsForIterationAsync(iterationPath, areaPath, ct);
         var workItems = await client.GetWorkItemsByIdsAsync(ids, ct);
 
-        return workItems
+        var filtered = workItems
             .Where(wi => !WorkItemTypeFilters.ExcludedFromSprintView.Contains(wi.WorkItemType))
-            .Select(BuildPreview)
             .ToList();
+
+        var mismatchById = await GetSprintMismatchByItemAsync(filtered, ct);
+
+        return filtered.Select(wi => BuildPreview(wi, mismatchById.GetValueOrDefault(wi.Id))).ToList();
+    }
+
+    // Sinaliza itens que já estão nesta sprint mas têm task(s) aberta(s) ainda na sprint anterior -
+    // ajuda a identificar demandas que precisam trazer a task pra frente. Só olha itens com AlreadyHasTasks
+    // pra evitar N+1 desnecessário nos que nem têm task ainda.
+    private async Task<Dictionary<int, bool>> GetSprintMismatchByItemAsync(IReadOnlyList<WorkItemDto> workItems, CancellationToken ct)
+    {
+        var itemsWithTasks = workItems.Where(wi => wi.AlreadyHasTasks).ToList();
+        if (itemsWithTasks.Count == 0)
+        {
+            return [];
+        }
+
+        var results = await Task.WhenAll(itemsWithTasks.Select(async wi =>
+        {
+            var childTasks = await GetChildTasksAsync(wi.Id, ct);
+            var hasMismatch = childTasks.Any(task =>
+                !_settings.DoneStates.Contains(task.State, StringComparer.OrdinalIgnoreCase) &&
+                task.IterationPath != wi.IterationPath);
+            return (wi.Id, HasMismatch: hasMismatch);
+        }));
+
+        return results.ToDictionary(r => r.Id, r => r.HasMismatch);
     }
 
     public async Task<GenerateTasksResult> GenerateTasksAsync(GenerateTasksRequest request, CancellationToken ct = default)
@@ -183,7 +213,7 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
             : $"{userStoryTitle} - {release} - {sprint}";
     }
 
-    private static WorkItemPreviewDto BuildPreview(WorkItemDto workItem)
+    private static WorkItemPreviewDto BuildPreview(WorkItemDto workItem, bool hasOpenTaskInDifferentSprint = false)
     {
         var sizeRecognized = workItem.EffortHours is { } effort && TaskSizingCalculator.TryCalculate(workItem.Title, effort, out _);
         var plannedTasks = !workItem.AlreadyHasTasks && workItem.EffortHours is { } e && TaskSizingCalculator.TryCalculate(workItem.Title, e, out var tasks)
@@ -200,6 +230,7 @@ public class WorkItemService(IAzureDevOpsClient client) : IWorkItemService
             workItem.AlreadyHasTasks,
             sizeRecognized,
             plannedTasks,
-            workItem.State);
+            workItem.State,
+            hasOpenTaskInDifferentSprint);
     }
 }

@@ -41,6 +41,7 @@ export interface WorkItemPreview {
   sizeRecognized: boolean;
   plannedTasks: PlannedTask[];
   state: string | null;
+  hasOpenTaskInDifferentSprint: boolean;
 }
 
 export interface WorkItemTask {

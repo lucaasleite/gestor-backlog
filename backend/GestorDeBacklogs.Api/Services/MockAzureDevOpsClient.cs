@@ -69,7 +69,8 @@ public class MockAzureDevOpsClient : IAzureDevOpsClient
         KeyValue(Build(302, "Como admin, quero agendar o envio periódico do relatório", "User Story", "M", 8, null, "diego@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, alreadyHasTasks: true, state: "Active")),
         KeyValue(Build(303, "Como usuário, quero salvar filtros favoritos", "User Story", null, null, "#P", "ana@empresa.com", @"GestorBacklogs\Sprint 24", AreaSre, state: "Proposed")),
         // Tasks já existentes, filhas de alguns dos itens acima (usadas na expansão de linha).
-        KeyValue(Build(5001, "Como usuário, quero recuperar minha senha", "Task", null, null, null, "bruno@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, originalEstimate: 4, remainingWork: 1, completedWork: 3, state: "Doing")),
+        // Ficou pra trás na Sprint 23 enquanto o item pai (102) já está na Sprint 24 - dispara a flag de "task fora da sprint".
+        KeyValue(Build(5001, "Como usuário, quero recuperar minha senha", "Task", null, null, null, "bruno@empresa.com", @"GestorBacklogs\Sprint 23", AreaPlataformaDevOps, originalEstimate: 4, remainingWork: 1, completedWork: 3, state: "Doing")),
         KeyValue(Build(4001, "Como admin, quero agendar o envio periódico do relatório", "Task", null, null, null, "diego@empresa.com", @"GestorBacklogs\Sprint 24", AreaPlataformaDevOps, originalEstimate: 8, remainingWork: 8, completedWork: 0, state: "To Do")),
         // Itens avulsos (fora de qualquer sprint listada), usados na tela "Tasks por item único" — outros tipos além de PBI/Bug.
         KeyValue(Build(601, "Erro ao carregar dashboard financeiro", "Incidente", "GG", 24, null, "carla@empresa.com", @"GestorBacklogs\Sprint 24", AreaSre, state: "Active")),

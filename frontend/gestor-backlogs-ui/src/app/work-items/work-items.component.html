@@ -210,7 +210,7 @@
           </thead>
           <tbody>
             @for (item of itemsWithTasks(); track item.id) {
-              <tr>
+              <tr [class.row-flagged]="item.hasOpenTaskInDifferentSprint">
                 <td></td>
                 <td>
                   <button
@@ -225,6 +225,13 @@
                     >#{{ item.id }}</a
                   >
                   {{ item.title }}
+                  @if (item.hasOpenTaskInDifferentSprint) {
+                    <span
+                      title="Tem task aberta em outra sprint - traga a task pra frente"
+                      style="margin-left: 4px;"
+                      >🚩</span
+                    >
+                  }
                 </td>
                 <td>{{ item.workItemType }}</td>
                 <td>{{ item.sizeLabel ?? '-' }}</td>
@@ -233,6 +240,9 @@
                 <td>{{ item.state ?? '-' }}</td>
                 <td>
                   <span class="badge warning">Já possui tasks</span>
+                  @if (item.hasOpenTaskInDifferentSprint) {
+                    <span class="badge error" style="margin-left: 4px;">Task fora da sprint</span>
+                  }
                   @if (item.sizeRecognized) {
                     <button
                       type="button"
