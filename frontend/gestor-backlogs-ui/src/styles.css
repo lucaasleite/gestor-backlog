@@ -1,39 +1,39 @@
 :root {
-  --primary: #1b84ff;
-  --primary-dim: rgba(27, 132, 255, 0.12);
+  --primary: #17915f;
+  --primary-dim: rgba(23, 145, 95, 0.12);
   --secondary: #2fb8c2;
-  --bg: #eef5f9;
+  --bg: #f2f7f4;
   --surface: #ffffff;
-  --surface-2: #f6f9fc;
-  --on-bg: #3a4752;
-  --on-bg-dim: #6b7a87;
-  --outline: #dde6ed;
+  --surface-2: #eef4f0;
+  --on-bg: #223129;
+  --on-bg-dim: #64756c;
+  --outline: #dee6e1;
   --warning: #b8790a;
   --warning-bg: rgba(246, 192, 0, 0.18);
   --success: #1a9a5c;
   --success-bg: rgba(44, 208, 126, 0.16);
   --error: #d81a53;
   --error-bg: rgba(248, 40, 90, 0.1);
-  --shadow: 0 1px 2px rgba(58, 71, 82, 0.06), 0 4px 16px rgba(58, 71, 82, 0.06);
+  --shadow: 0 1px 2px rgba(34, 49, 41, 0.06), 0 4px 16px rgba(34, 49, 41, 0.06);
 }
 
 :root[data-theme="dark"] {
-  --primary: #4c9aff;
-  --primary-dim: rgba(76, 154, 255, 0.18);
-  --secondary: #38c6d1;
-  --bg: #10161d;
-  --surface: #1a222b;
-  --surface-2: #222c37;
-  --on-bg: #e4e9ee;
-  --on-bg-dim: #93a1ad;
-  --outline: #2c3742;
-  --warning: #f6c000;
-  --warning-bg: rgba(246, 192, 0, 0.16);
-  --success: #2cd07e;
-  --success-bg: rgba(44, 208, 126, 0.16);
-  --error: #ff5c82;
-  --error-bg: rgba(248, 40, 90, 0.18);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.35);
+  --primary: #22c58f;
+  --primary-dim: rgba(34, 197, 143, 0.16);
+  --secondary: #38bdf8;
+  --bg: #0a0f0d;
+  --surface: #101613;
+  --surface-2: #161f1a;
+  --on-bg: #e9f1ec;
+  --on-bg-dim: #8a9c93;
+  --outline: #1f2b25;
+  --warning: #f5b942;
+  --warning-bg: rgba(245, 185, 66, 0.14);
+  --success: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.14);
+  --error: #fb7185;
+  --error-bg: rgba(251, 113, 133, 0.14);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -68,11 +68,12 @@ h3 {
 
 .topbar {
   grid-column: 1 / -1;
-  background: var(--primary);
-  color: #fff;
-  padding: 16px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--outline);
+  color: var(--on-bg);
+  padding: 14px 24px;
   font-weight: 600;
-  font-size: 17px;
+  font-size: 15.5px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -83,17 +84,63 @@ h3 {
   text-decoration: none;
 }
 
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+
+.brand-mark svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.topbar-spacer {
+  flex: 1;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--outline);
+  color: var(--on-bg-dim);
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.theme-toggle svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.theme-toggle:hover {
+  color: var(--primary);
+  border-color: var(--primary-dim);
+}
+
 .menu-toggle {
   display: none;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--on-bg);
   padding: 6px;
   border-radius: 8px;
   cursor: pointer;
-  margin-left: auto;
 }
 
 .menu-toggle .bar {
@@ -118,29 +165,28 @@ h3 {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-radius: 26px;
-  font-size: 14.5px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--on-bg);
+  color: var(--on-bg-dim);
   text-decoration: none;
 }
 
-.nav-item .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.35;
+.nav-item svg {
+  width: 17px;
+  height: 17px;
   flex-shrink: 0;
+  opacity: 0.85;
 }
 
 .nav-item.active {
-  background: var(--secondary);
-  color: #fff;
+  background: var(--primary-dim);
+  color: var(--primary);
+  font-weight: 700;
 }
 
-.nav-item.active .dot {
+.nav-item.active svg {
   opacity: 1;
 }
 
@@ -194,7 +240,7 @@ h3 {
 .card {
   background: var(--surface);
   border: 1px solid var(--outline);
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: var(--shadow);
   padding: 20px 22px;
 }
@@ -313,7 +359,7 @@ button:not(:disabled):hover {
 
 /* Banners */
 .banner {
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 12px 14px;
   font-size: 13.5px;
   display: flex;
@@ -472,7 +518,7 @@ input[type="checkbox"] {
   max-width: 320px;
   background: var(--surface);
   border: 1px solid var(--outline);
-  border-radius: 10px;
+  border-radius: 14px;
   box-shadow: var(--shadow);
   padding: 10px;
   display: flex;
@@ -561,7 +607,7 @@ input[type="checkbox"] {
 }
 
 .dash-kpi {
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 16px;
   background: var(--surface);
   border: 1px solid var(--outline);

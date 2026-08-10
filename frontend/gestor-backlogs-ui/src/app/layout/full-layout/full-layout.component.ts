@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
+import { Theme, ThemeService } from '../../services/theme.service';
 
 @Component({
   selector: 'app-full-layout',
@@ -11,6 +12,15 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
 })
 export class FullLayoutComponent {
   sidebarOpen = signal(false);
+  theme: () => Theme;
+
+  constructor(private readonly themeService: ThemeService) {
+    this.theme = this.themeService.theme;
+  }
+
+  toggleTheme(): void {
+    this.themeService.setTheme(this.themeService.theme() === 'dark' ? 'light' : 'dark');
+  }
 
   toggleSidebar(): void {
     this.sidebarOpen.update((open) => !open);

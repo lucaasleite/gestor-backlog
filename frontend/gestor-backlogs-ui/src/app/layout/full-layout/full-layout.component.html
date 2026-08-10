@@ -1,6 +1,22 @@
 <div class="shell">
   <div class="topbar">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 12L12 4l8 8-8 8-8-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg>
+    </span>
     <span>Gestor de Backlogs</span>
+    <div class="topbar-spacer"></div>
+    <button
+      class="theme-toggle"
+      type="button"
+      (click)="toggleTheme()"
+      [attr.aria-label]="theme() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
+    >
+      @if (theme() === 'dark') {
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 1 0 9 9 9 9 0 1 1-9-9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+      } @else {
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6" /><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+      }
+    </button>
     <button class="menu-toggle" type="button" (click)="toggleSidebar()" aria-label="Abrir menu">
       <span class="bar"></span>
       <span class="bar"></span>

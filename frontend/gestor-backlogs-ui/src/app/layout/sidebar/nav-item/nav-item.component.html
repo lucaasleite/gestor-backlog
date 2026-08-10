@@ -1,4 +1,20 @@
 <a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
-  <span class="dot"></span>
+  @switch (item.icon) {
+    @case ('config') {
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-4H4v4ZM14 11h6V4h-6v7Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+    }
+    @case ('dashboard') {
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V10M10 19V5M16 19v-7M4 19h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    }
+    @case ('work-items') {
+      <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="4.2" rx="1" stroke="currentColor" stroke-width="1.6" /><rect x="4" y="14.8" width="16" height="4.2" rx="1" stroke="currentColor" stroke-width="1.6" /></svg>
+    }
+    @case ('parent-tasks') {
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.6" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.6" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.6" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.4" stroke="currentColor" stroke-width="1.6" /></svg>
+    }
+    @case ('single-item') {
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 4h9l4 4v12H6V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /><path d="M14 4v4h4" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+    }
+  }
   <span>{{ item.displayName }}</span>
 </a>
