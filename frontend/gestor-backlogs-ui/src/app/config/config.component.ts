@@ -1,9 +1,8 @@
-import { Component, OnDestroy, OnInit, Signal, signal } from '@angular/core';
+import { Component, OnInit, Signal, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription, interval, switchMap } from 'rxjs';
 import { ApiService } from '../services/api.service';
-import { AuthMode, ConnectionSettings, EntraDeviceCodeInfo, TeamConfig } from '../models/api-models';
+import { AuthMode, ConnectionSettings, TeamConfig } from '../models/api-models';
 import { Theme, ThemeService } from '../services/theme.service';
 
 @Component({
@@ -13,7 +12,7 @@ import { Theme, ThemeService } from '../services/theme.service';
   templateUrl: './config.component.html',
   styles: ':host { display: contents; }',
 })
-export class ConfigComponent implements OnInit, OnDestroy {
+export class ConfigComponent implements OnInit {
   model: ConnectionSettings = {
     organizationUrl: 'https://dev.azure.com/Ailos',
     project: 'Ailos',
@@ -25,11 +24,8 @@ export class ConfigComponent implements OnInit, OnDestroy {
   hasStoredToken = signal(false);
   status = signal<'idle' | 'testing' | 'success' | 'error'>('idle');
   statusMessage = signal('');
-  entraDeviceCode = signal<EntraDeviceCodeInfo | null>(null);
 
   theme: Signal<Theme>;
-
-  private entraPollSubscription?: Subscription;
 
   constructor(
     private readonly api: ApiService,
@@ -58,13 +54,8 @@ export class ConfigComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {
-    this.entraPollSubscription?.unsubscribe();
-  }
-
   setAuthMode(mode: AuthMode): void {
     this.model.authMode = mode;
-    this.entraDeviceCode.set(null);
     this.status.set('idle');
     this.statusMessage.set('');
   }
@@ -82,73 +73,9 @@ export class ConfigComponent implements OnInit, OnDestroy {
   }
 
   save(): void {
-    const teams = this.buildTeams();
-    if (!teams) {
-      return;
-    }
-
     this.status.set('testing');
     this.statusMessage.set('');
-    this.finishSave(teams);
-  }
 
-  loginWithMicrosoft(): void {
-    const teams = this.buildTeams();
-    if (!teams) {
-      return;
-    }
-
-    this.status.set('testing');
-    this.statusMessage.set('');
-    this.entraDeviceCode.set(null);
-
-    this.api.startEntraLogin().subscribe({
-      next: (info) => {
-        this.entraDeviceCode.set(info);
-        this.pollEntraLoginStatus(teams);
-      },
-      error: (err) => {
-        this.status.set('error');
-        this.statusMessage.set(err?.error?.message ?? 'Não foi possível iniciar o login com a Microsoft.');
-      },
-    });
-  }
-
-  logoutMicrosoft(): void {
-    this.api.logoutEntra().subscribe(() => {
-      this.hasStoredToken.set(false);
-      this.status.set('idle');
-      this.statusMessage.set('');
-    });
-  }
-
-  private pollEntraLoginStatus(teams: TeamConfig[]): void {
-    this.entraPollSubscription?.unsubscribe();
-    this.entraPollSubscription = interval(2000)
-      .pipe(switchMap(() => this.api.getEntraLoginStatus()))
-      .subscribe({
-        next: (loginStatus) => {
-          if (loginStatus.status === 'success') {
-            this.entraPollSubscription?.unsubscribe();
-            this.entraDeviceCode.set(null);
-            this.finishSave(teams);
-          } else if (loginStatus.status === 'error') {
-            this.entraPollSubscription?.unsubscribe();
-            this.entraDeviceCode.set(null);
-            this.status.set('error');
-            this.statusMessage.set(loginStatus.message ?? 'Não foi possível concluir o login com a Microsoft.');
-          }
-        },
-        error: () => {
-          this.entraPollSubscription?.unsubscribe();
-          this.entraDeviceCode.set(null);
-          this.status.set('error');
-          this.statusMessage.set('Não foi possível verificar o status do login.');
-        },
-      });
-  }
-
-  private buildTeams(): TeamConfig[] | null {
     const teams = this.model.teams
       .map((t): TeamConfig => ({ name: t.name.trim(), areaPath: t.areaPath.trim() }))
       .filter((t) => t.name.length > 0);
@@ -156,13 +83,9 @@ export class ConfigComponent implements OnInit, OnDestroy {
     if (teams.length === 0) {
       this.status.set('error');
       this.statusMessage.set('Cadastre pelo menos um time.');
-      return null;
+      return;
     }
 
-    return teams;
-  }
-
-  private finishSave(teams: TeamConfig[]): void {
     this.api.saveConnectionSettings({ ...this.model, teams }).subscribe({
       next: () => {
         this.api.testConnection().subscribe({

@@ -22,12 +22,12 @@ public class ConnectionSettingsStore : IConnectionSettingsStore
     private static readonly string ConfigPath = Path.Combine(ConfigDirectory, "config.json");
 
     private readonly ISecretProtector _secretProtector;
-    private readonly IEntraAuthService _entraAuthService;
+    private readonly IAzureCliAuthService _azureCliAuthService;
 
-    public ConnectionSettingsStore(ISecretProtector secretProtector, IEntraAuthService entraAuthService)
+    public ConnectionSettingsStore(ISecretProtector secretProtector, IAzureCliAuthService azureCliAuthService)
     {
         _secretProtector = secretProtector;
-        _entraAuthService = entraAuthService;
+        _azureCliAuthService = azureCliAuthService;
     }
 
     public StoredConnectionSettings? GetRaw()
@@ -50,7 +50,7 @@ public class ConnectionSettingsStore : IConnectionSettingsStore
         }
 
         var hasToken = raw.AuthMode == AuthMode.Sso
-            ? await _entraAuthService.IsSignedInAsync()
+            ? await _azureCliAuthService.IsSignedInAsync()
             : !string.IsNullOrEmpty(raw.ProtectedPat);
 
         return new ConnectionSettingsResponse(raw.OrganizationUrl, raw.Project, raw.Teams, raw.AuthMode, hasToken);

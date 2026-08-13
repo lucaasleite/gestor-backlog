@@ -11,7 +11,7 @@ namespace GestorDeBacklogs.Api.Services;
 public class AzureDevOpsClient(
     IHttpClientFactory httpClientFactory,
     IConnectionSettingsStore settingsStore,
-    IEntraAuthService entraAuthService,
+    IAzureCliAuthService azureCliAuthService,
     IOptionsSnapshot<AzureDevOpsSettings> options) : IAzureDevOpsClient
 {
     private readonly AzureDevOpsSettings _settings = options.Value;
@@ -321,7 +321,7 @@ public class AzureDevOpsClient(
 
         if (settings.AuthMode == AuthMode.Sso)
         {
-            var accessToken = await entraAuthService.GetAccessTokenAsync(ct);
+            var accessToken = await azureCliAuthService.GetAccessTokenAsync(ct);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         }
         else

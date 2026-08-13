@@ -58,7 +58,7 @@
       <label>Autenticação</label>
       <div class="actions-bar" style="margin-top: 4px;">
         <button type="button" [class.ghost]="model.authMode !== 'Sso'" (click)="setAuthMode('Sso')">
-          Entrar com Microsoft
+          Azure CLI (az login)
         </button>
         <button type="button" [class.ghost]="model.authMode !== 'Pat'" (click)="setAuthMode('Pat')">
           Usar PAT manualmente
@@ -79,28 +79,15 @@
       </div>
     } @else {
       <div class="field">
-        @if (entraDeviceCode(); as code) {
-          <span class="hint">
-            Abra
-            <a [href]="code.verificationUri" target="_blank" rel="noopener">{{ code.verificationUri }}</a>
-            em qualquer dispositivo e digite o código abaixo pra concluir o login:
+        <span class="hint">
+          Requer a Azure CLI instalada, com login feito no terminal (<code>az login</code>). O app usa a sessão
+          já ativa da CLI — não precisa colar nada aqui.
+        </span>
+        <div class="actions-bar" style="margin-top: 4px;">
+          <span [class.success]="hasStoredToken()" [class.error]="!hasStoredToken()">
+            {{ hasStoredToken() ? 'Azure CLI conectada.' : 'Nenhuma sessão da Azure CLI encontrada.' }}
           </span>
-          <div class="banner" style="text-align: center; font-size: 1.4rem; letter-spacing: 2px;">
-            {{ code.userCode }}
-          </div>
-        } @else if (hasStoredToken()) {
-          <span class="hint">Conectado com a Microsoft.</span>
-          <div class="actions-bar" style="margin-top: 4px;">
-            <button type="button" class="ghost" (click)="logoutMicrosoft()">Sair / trocar de conta</button>
-          </div>
-        } @else {
-          <span class="hint">Faça login com sua conta Microsoft pra conectar ao Azure DevOps sem PAT.</span>
-          <div class="actions-bar" style="margin-top: 4px;">
-            <button type="button" (click)="loginWithMicrosoft()" [disabled]="status() === 'testing'">
-              {{ status() === 'testing' ? 'Aguardando...' : 'Entrar com Microsoft' }}
-            </button>
-          </div>
-        }
+        </div>
       </div>
     }
 
@@ -110,13 +97,11 @@
       </div>
     }
 
-    @if (model.authMode === 'Pat' || hasStoredToken()) {
-      <div class="actions-bar">
-        <button type="button" (click)="save()" [disabled]="status() === 'testing'">
-          {{ status() === 'testing' ? 'Testando...' : 'Salvar e testar conexão' }}
-        </button>
-      </div>
-    }
+    <div class="actions-bar">
+      <button type="button" (click)="save()" [disabled]="status() === 'testing'">
+        {{ status() === 'testing' ? 'Testando...' : 'Salvar e testar conexão' }}
+      </button>
+    </div>
   </div>
 </section>
 

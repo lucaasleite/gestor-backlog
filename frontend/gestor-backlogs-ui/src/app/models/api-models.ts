@@ -21,17 +21,6 @@ export interface ConnectionSettingsResponse {
   hasToken: boolean;
 }
 
-export interface EntraDeviceCodeInfo {
-  verificationUri: string;
-  userCode: string;
-  expiresInSeconds: number;
-}
-
-export interface EntraLoginStatus {
-  status: 'pending' | 'success' | 'error';
-  message?: string;
-}
-
 export interface Iteration {
   id: string;
   name: string;
