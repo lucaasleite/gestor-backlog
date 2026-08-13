@@ -22,6 +22,16 @@ RUN dotnet publish backend/GestorDeBacklogs.Api/GestorDeBacklogs.Api.csproj -c R
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=backend-build /app/publish .
+
+# Necessário pro modo de autenticação "Azure CLI": AzureCliCredential chama o binário "az"
+# pra pegar um token a partir da sessão de "az login" feita no host (montada em /root/.azure
+# via volume no docker-compose.yml).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates apt-transport-https gnupg lsb-release \
+    && curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
+    && apt-get purge -y --auto-remove gnupg lsb-release \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080

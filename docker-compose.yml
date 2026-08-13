@@ -5,6 +5,10 @@ services:
       - "8080:8080"
     volumes:
       - gestor_config:/root/.config/GestorBacklogs
+      # Compartilha a sessão do "az login" feita no host (WSL) com o container, pro modo
+      # de autenticação "Azure CLI" funcionar. Requer rodar "az login" no mesmo usuário/WSL
+      # usado pra subir o docker-compose.
+      - ${HOME}/.azure:/root/.azure
     restart: unless-stopped
 
 volumes:
