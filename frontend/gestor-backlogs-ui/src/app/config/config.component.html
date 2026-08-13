@@ -55,15 +55,54 @@
     </div>
 
     <div class="field">
-      <label for="pat">Personal Access Token (PAT)</label>
-      <input
-        type="password"
-        id="pat"
-        name="pat"
-        [(ngModel)]="model.personalAccessToken"
-        [placeholder]="hasStoredToken() ? 'Já configurado — deixe em branco para manter' : 'Cole seu PAT aqui'"
-      />
+      <label>Autenticação</label>
+      <div class="actions-bar" style="margin-top: 4px;">
+        <button type="button" [class.ghost]="model.authMode !== 'Sso'" (click)="setAuthMode('Sso')">
+          Entrar com Microsoft
+        </button>
+        <button type="button" [class.ghost]="model.authMode !== 'Pat'" (click)="setAuthMode('Pat')">
+          Usar PAT manualmente
+        </button>
+      </div>
     </div>
+
+    @if (model.authMode === 'Pat') {
+      <div class="field">
+        <label for="pat">Personal Access Token (PAT)</label>
+        <input
+          type="password"
+          id="pat"
+          name="pat"
+          [(ngModel)]="model.personalAccessToken"
+          [placeholder]="hasStoredToken() ? 'Já configurado — deixe em branco para manter' : 'Cole seu PAT aqui'"
+        />
+      </div>
+    } @else {
+      <div class="field">
+        @if (entraDeviceCode(); as code) {
+          <span class="hint">
+            Abra
+            <a [href]="code.verificationUri" target="_blank" rel="noopener">{{ code.verificationUri }}</a>
+            em qualquer dispositivo e digite o código abaixo pra concluir o login:
+          </span>
+          <div class="banner" style="text-align: center; font-size: 1.4rem; letter-spacing: 2px;">
+            {{ code.userCode }}
+          </div>
+        } @else if (hasStoredToken()) {
+          <span class="hint">Conectado com a Microsoft.</span>
+          <div class="actions-bar" style="margin-top: 4px;">
+            <button type="button" class="ghost" (click)="logoutMicrosoft()">Sair / trocar de conta</button>
+          </div>
+        } @else {
+          <span class="hint">Faça login com sua conta Microsoft pra conectar ao Azure DevOps sem PAT.</span>
+          <div class="actions-bar" style="margin-top: 4px;">
+            <button type="button" (click)="loginWithMicrosoft()" [disabled]="status() === 'testing'">
+              {{ status() === 'testing' ? 'Aguardando...' : 'Entrar com Microsoft' }}
+            </button>
+          </div>
+        }
+      </div>
+    }
 
     @if (statusMessage()) {
       <div class="banner" [class.success]="status() === 'success'" [class.error]="status() === 'error'">
@@ -71,11 +110,13 @@
       </div>
     }
 
-    <div class="actions-bar">
-      <button type="button" (click)="save()" [disabled]="status() === 'testing'">
-        {{ status() === 'testing' ? 'Testando...' : 'Salvar e testar conexão' }}
-      </button>
-    </div>
+    @if (model.authMode === 'Pat' || hasStoredToken()) {
+      <div class="actions-bar">
+        <button type="button" (click)="save()" [disabled]="status() === 'testing'">
+          {{ status() === 'testing' ? 'Testando...' : 'Salvar e testar conexão' }}
+        </button>
+      </div>
+    }
   </div>
 </section>
 

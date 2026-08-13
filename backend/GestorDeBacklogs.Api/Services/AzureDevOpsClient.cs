@@ -11,13 +11,14 @@ namespace GestorDeBacklogs.Api.Services;
 public class AzureDevOpsClient(
     IHttpClientFactory httpClientFactory,
     IConnectionSettingsStore settingsStore,
+    IEntraAuthService entraAuthService,
     IOptionsSnapshot<AzureDevOpsSettings> options) : IAzureDevOpsClient
 {
     private readonly AzureDevOpsSettings _settings = options.Value;
 
     public async Task<bool> TestConnectionAsync(CancellationToken ct = default)
     {
-        var (client, conn) = GetConfiguredClient();
+        var (client, conn) = await GetConfiguredClientAsync(ct);
         var url = $"{conn.OrganizationUrl}/_apis/projects/{Uri.EscapeDataString(conn.Project)}?api-version={_settings.ApiVersion}";
         using var response = await client.GetAsync(url, ct);
         return response.IsSuccessStatusCode;
@@ -25,7 +26,7 @@ public class AzureDevOpsClient(
 
     public async Task<IReadOnlyList<IterationDto>> GetIterationsAsync(string teamName, CancellationToken ct = default)
     {
-        var (client, conn) = GetConfiguredClient();
+        var (client, conn) = await GetConfiguredClientAsync(ct);
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/{Uri.EscapeDataString(teamName)}/_apis/work/teamsettings/iterations?api-version={_settings.ApiVersion}";
         using var response = await client.GetAsync(url, ct);
         await EnsureSuccessAsync(response, ct);
@@ -57,7 +58,7 @@ public class AzureDevOpsClient(
 
     public async Task<IReadOnlyList<int>> QueryWorkItemIdsForIterationAsync(string iterationPath, string? areaPath, CancellationToken ct = default)
     {
-        var (client, conn) = GetConfiguredClient();
+        var (client, conn) = await GetConfiguredClientAsync(ct);
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/wiql?api-version={_settings.ApiVersion}";
 
         var escapedIterationPath = iterationPath.Replace("'", "''");
@@ -95,7 +96,7 @@ public class AzureDevOpsClient(
             return [];
         }
 
-        var (client, conn) = GetConfiguredClient();
+        var (client, conn) = await GetConfiguredClientAsync(ct);
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitemsbatch?api-version={_settings.ApiVersion}";
 
         var result = new List<WorkItemDto>();
@@ -119,7 +120,7 @@ public class AzureDevOpsClient(
 
     public async Task<IReadOnlyList<int>> GetChildWorkItemIdsAsync(int parentId, CancellationToken ct = default)
     {
-        var (client, conn) = GetConfiguredClient();
+        var (client, conn) = await GetConfiguredClientAsync(ct);
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/{parentId}?$expand=relations&api-version={_settings.ApiVersion}";
         using var response = await client.GetAsync(url, ct);
         await EnsureSuccessAsync(response, ct);
@@ -149,7 +150,7 @@ public class AzureDevOpsClient(
 
     public async Task<Dictionary<string, JsonElement>> GetWorkItemRawFieldsAsync(int id, CancellationToken ct = default)
     {
-        var (client, conn) = GetConfiguredClient();
+        var (client, conn) = await GetConfiguredClientAsync(ct);
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/{id}?api-version={_settings.ApiVersion}";
         using var response = await client.GetAsync(url, ct);
         await EnsureSuccessAsync(response, ct);
@@ -162,7 +163,7 @@ public class AzureDevOpsClient(
 
     public async Task<int> CreateTaskAsync(WorkItemDto parent, string title, double hours, string iterationPath, CancellationToken ct = default)
     {
-        var (client, conn) = GetConfiguredClient();
+        var (client, conn) = await GetConfiguredClientAsync(ct);
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/$Task?api-version={_settings.ApiVersion}";
 
         var ops = new List<object>
@@ -198,7 +199,7 @@ public class AzureDevOpsClient(
 
     public async Task CloseWorkItemAsync(int id, CancellationToken ct = default)
     {
-        var (client, conn) = GetConfiguredClient();
+        var (client, conn) = await GetConfiguredClientAsync(ct);
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/{id}?api-version={_settings.ApiVersion}";
 
         var ops = new object[]
@@ -216,7 +217,7 @@ public class AzureDevOpsClient(
 
     public async Task MoveToIterationAsync(int id, string iterationPath, CancellationToken ct = default)
     {
-        var (client, conn) = GetConfiguredClient();
+        var (client, conn) = await GetConfiguredClientAsync(ct);
         var url = $"{conn.OrganizationUrl}/{Uri.EscapeDataString(conn.Project)}/_apis/wit/workitems/{id}?api-version={_settings.ApiVersion}";
 
         var ops = new object[]
@@ -308,18 +309,32 @@ public class AzureDevOpsClient(
         return assignedEl.TryGetProperty("displayName", out var displayName) ? displayName.GetString() : null;
     }
 
-    private (HttpClient client, StoredConnectionSettings settings) GetConfiguredClient()
+    private async Task<(HttpClient client, StoredConnectionSettings settings)> GetConfiguredClientAsync(CancellationToken ct)
     {
         var settings = settingsStore.GetRaw();
-        if (settings is null || string.IsNullOrWhiteSpace(settings.ProtectedPat))
+        if (settings is null)
         {
-            throw new InvalidOperationException("Configuração de conexão com o Azure DevOps não encontrada. Configure a Organização, Projeto, Team e PAT primeiro.");
+            throw new InvalidOperationException("Configuração de conexão com o Azure DevOps não encontrada. Configure a Organização, Projeto e Team primeiro.");
         }
 
-        var pat = settingsStore.GetDecryptedPat();
         var client = httpClientFactory.CreateClient("AzureDevOps");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes($":{pat}")));
+
+        if (settings.AuthMode == AuthMode.Sso)
+        {
+            var accessToken = await entraAuthService.GetAccessTokenAsync(ct);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(settings.ProtectedPat))
+            {
+                throw new InvalidOperationException("PAT não configurado. Configure o Personal Access Token primeiro.");
+            }
+
+            var pat = settingsStore.GetDecryptedPat();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                "Basic", Convert.ToBase64String(Encoding.ASCII.GetBytes($":{pat}")));
+        }
 
         return (client, settings);
     }

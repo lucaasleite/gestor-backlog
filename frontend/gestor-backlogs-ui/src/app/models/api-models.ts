@@ -3,10 +3,13 @@ export interface TeamConfig {
   areaPath: string;
 }
 
+export type AuthMode = 'Pat' | 'Sso';
+
 export interface ConnectionSettings {
   organizationUrl: string;
   project: string;
   teams: TeamConfig[];
+  authMode: AuthMode;
   personalAccessToken?: string;
 }
 
@@ -14,7 +17,19 @@ export interface ConnectionSettingsResponse {
   organizationUrl: string;
   project: string;
   teams: TeamConfig[];
+  authMode: AuthMode;
   hasToken: boolean;
+}
+
+export interface EntraDeviceCodeInfo {
+  verificationUri: string;
+  userCode: string;
+  expiresInSeconds: number;
+}
+
+export interface EntraLoginStatus {
+  status: 'pending' | 'success' | 'error';
+  message?: string;
 }
 
 export interface Iteration {

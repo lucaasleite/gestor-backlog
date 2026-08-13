@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import {
   ConnectionSettings,
   ConnectionSettingsResponse,
+  EntraDeviceCodeInfo,
+  EntraLoginStatus,
   GenerateTasksFromParentRequest,
   GenerateTasksItemResult,
   GenerateTasksRequest,
@@ -33,6 +35,18 @@ export class ApiService {
 
   testConnection(): Observable<{ success: boolean; message?: string }> {
     return this.http.post<{ success: boolean; message?: string }>(`${this.baseUrl}/config/test-connection`, {});
+  }
+
+  startEntraLogin(): Observable<EntraDeviceCodeInfo> {
+    return this.http.post<EntraDeviceCodeInfo>(`${this.baseUrl}/auth/entra/start`, {});
+  }
+
+  getEntraLoginStatus(): Observable<EntraLoginStatus> {
+    return this.http.get<EntraLoginStatus>(`${this.baseUrl}/auth/entra/status`);
+  }
+
+  logoutEntra(): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/auth/entra/logout`, {});
   }
 
   getSprints(team: string): Observable<Iteration[]> {

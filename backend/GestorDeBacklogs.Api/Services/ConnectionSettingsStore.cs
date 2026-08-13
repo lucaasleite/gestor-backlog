@@ -4,12 +4,12 @@ using GestorDeBacklogs.Api.Security;
 
 namespace GestorDeBacklogs.Api.Services;
 
-public record StoredConnectionSettings(string OrganizationUrl, string Project, IReadOnlyList<TeamConfig> Teams, string? ProtectedPat);
+public record StoredConnectionSettings(string OrganizationUrl, string Project, IReadOnlyList<TeamConfig> Teams, AuthMode AuthMode, string? ProtectedPat);
 
 public interface IConnectionSettingsStore
 {
     StoredConnectionSettings? GetRaw();
-    ConnectionSettingsResponse? GetSettings();
+    Task<ConnectionSettingsResponse?> GetSettingsAsync();
     string? GetDecryptedPat();
     void SaveSettings(ConnectionSettingsDto dto);
 }
@@ -22,10 +22,12 @@ public class ConnectionSettingsStore : IConnectionSettingsStore
     private static readonly string ConfigPath = Path.Combine(ConfigDirectory, "config.json");
 
     private readonly ISecretProtector _secretProtector;
+    private readonly IEntraAuthService _entraAuthService;
 
-    public ConnectionSettingsStore(ISecretProtector secretProtector)
+    public ConnectionSettingsStore(ISecretProtector secretProtector, IEntraAuthService entraAuthService)
     {
         _secretProtector = secretProtector;
+        _entraAuthService = entraAuthService;
     }
 
     public StoredConnectionSettings? GetRaw()
@@ -39,12 +41,19 @@ public class ConnectionSettingsStore : IConnectionSettingsStore
         return JsonSerializer.Deserialize<StoredConnectionSettings>(json);
     }
 
-    public ConnectionSettingsResponse? GetSettings()
+    public async Task<ConnectionSettingsResponse?> GetSettingsAsync()
     {
         var raw = GetRaw();
-        return raw is null
-            ? null
-            : new ConnectionSettingsResponse(raw.OrganizationUrl, raw.Project, raw.Teams, !string.IsNullOrEmpty(raw.ProtectedPat));
+        if (raw is null)
+        {
+            return null;
+        }
+
+        var hasToken = raw.AuthMode == AuthMode.Sso
+            ? await _entraAuthService.IsSignedInAsync()
+            : !string.IsNullOrEmpty(raw.ProtectedPat);
+
+        return new ConnectionSettingsResponse(raw.OrganizationUrl, raw.Project, raw.Teams, raw.AuthMode, hasToken);
     }
 
     public string? GetDecryptedPat()
@@ -61,7 +70,7 @@ public class ConnectionSettingsStore : IConnectionSettingsStore
             ? _secretProtector.Protect(dto.PersonalAccessToken)
             : GetRaw()?.ProtectedPat;
 
-        var stored = new StoredConnectionSettings(dto.OrganizationUrl.TrimEnd('/'), dto.Project, dto.Teams, protectedPat);
+        var stored = new StoredConnectionSettings(dto.OrganizationUrl.TrimEnd('/'), dto.Project, dto.Teams, dto.AuthMode, protectedPat);
         File.WriteAllText(ConfigPath, JsonSerializer.Serialize(stored));
     }
 }

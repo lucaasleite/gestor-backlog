@@ -9,16 +9,16 @@ public static class ConfigEndpoints
     {
         var group = app.MapGroup("/api/config");
 
-        group.MapGet("", (IConnectionSettingsStore store) =>
+        group.MapGet("", async (IConnectionSettingsStore store) =>
         {
-            var settings = store.GetSettings();
+            var settings = await store.GetSettingsAsync();
             return settings is null ? Results.NotFound() : Results.Ok(settings);
         });
 
-        group.MapPost("", (ConnectionSettingsDto dto, IConnectionSettingsStore store) =>
+        group.MapPost("", async (ConnectionSettingsDto dto, IConnectionSettingsStore store) =>
         {
             store.SaveSettings(dto);
-            return Results.Ok(store.GetSettings());
+            return Results.Ok(await store.GetSettingsAsync());
         });
 
         group.MapPost("/test-connection", async (IAzureDevOpsClient client) =>
